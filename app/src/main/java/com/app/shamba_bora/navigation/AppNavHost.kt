@@ -5,6 +5,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.app.shamba_bora.ui.screens.auth.LoginScreen
 import com.app.shamba_bora.ui.screens.auth.RegisterScreen
 import com.app.shamba_bora.ui.screens.chatbot.ChatbotScreen
@@ -15,6 +17,13 @@ import com.app.shamba_bora.ui.screens.records.RecordsScreen
 import com.app.shamba_bora.ui.screens.farm.ActivitiesScreen
 import com.app.shamba_bora.ui.screens.farm.ExpensesScreen
 import com.app.shamba_bora.ui.screens.farm.YieldsScreen
+import com.app.shamba_bora.ui.screens.messaging.ConversationListScreen
+import com.app.shamba_bora.ui.screens.messaging.ChatScreen
+import com.app.shamba_bora.ui.screens.messaging.GroupChatScreen
+import com.app.shamba_bora.ui.screens.profile.ProfileScreen
+import com.app.shamba_bora.ui.screens.profile.FarmerProfileScreen
+import com.app.shamba_bora.ui.screens.profile.EditProfileScreen
+import com.app.shamba_bora.ui.screens.profile.SettingsScreen
 
 @Composable
 fun AppNavHost(
@@ -105,7 +114,77 @@ fun AppNavHost(
             )
         }
         
-        // TODO: Add other screens (Profile, Settings, Weather, etc.)
+        // Messaging Screens
+        composable(Screen.Messages.route) {
+            ConversationListScreen(
+                onNavigateToChat = { otherUserId ->
+                    navController.navigate("chat/$otherUserId")
+                },
+                onNavigateToGroups = { navController.navigate(Screen.Groups.route) }
+            )
+        }
+        
+        composable(
+            route = "chat/{otherUserId}",
+            arguments = listOf(navArgument("otherUserId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val otherUserId = backStackEntry.arguments?.getLong("otherUserId") ?: 0L
+            ChatScreen(
+                otherUserId = otherUserId,
+                otherUserName = "User $otherUserId", // TODO: Fetch actual username
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = "group_chat/{groupId}",
+            arguments = listOf(navArgument("groupId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getLong("groupId") ?: 0L
+            GroupChatScreen(
+                groupId = groupId,
+                groupName = "Group $groupId", // TODO: Fetch actual group name
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // Profile Screens
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onNavigateToFarmerProfile = { navController.navigate(Screen.FarmerProfile.route) },
+                onNavigateToEditProfile = { navController.navigate("edit_profile/user") },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+            )
+        }
+        
+        composable(Screen.FarmerProfile.route) {
+            FarmerProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { navController.navigate("edit_profile/farmer") }
+            )
+        }
+        
+        composable(
+            route = "edit_profile/{type}",
+            arguments = listOf(navArgument("type") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: "user"
+            EditProfileScreen(
+                isFarmerProfile = type == "farmer",
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
     }
 }
 

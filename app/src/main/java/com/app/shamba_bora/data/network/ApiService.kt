@@ -435,12 +435,4 @@ data class ApiResponse<T>(
     val timestamp: String? = null
 )
 
-// Pagination response
-data class PageResponse<T>(
-    val content: List<T>,
-    val totalElements: Long,
-    val totalPages: Int,
-    val size: Int,
-    val number: Int,
-    val page: Int? = null // Some endpoints use "page" instead of "number"
-)
+// PageResponse is now defined in PageResponse.kt
