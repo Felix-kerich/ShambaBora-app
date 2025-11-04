@@ -19,6 +19,7 @@ import com.app.shamba_bora.navigation.AppNavHost
 import com.app.shamba_bora.navigation.Screen
 import com.app.shamba_bora.ui.components.DrawerMenu
 import com.app.shamba_bora.ui.theme.Shamba_BoraTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +41,7 @@ fun MainScreen() {
     val currentRoute = navBackStackEntry?.destination?.route
     
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val coroutineScope = rememberCoroutineScope()
     var showBottomNav by remember { mutableStateOf(true) }
     
     // Show bottom nav only on main screens
@@ -68,9 +70,15 @@ fun MainScreen() {
                         launchSingleTop = true
                         restoreState = true
                     }
-                    drawerState.close()
+                    coroutineScope.launch {
+                        drawerState.close()
+                    }
                 },
-                onClose = { drawerState.close() }
+                onClose = { 
+                    coroutineScope.launch {
+                        drawerState.close()
+                    }
+                }
             )
         }
     ) {
@@ -91,7 +99,11 @@ fun MainScreen() {
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = { drawerState.open() }) {
+                        IconButton(onClick = { 
+                            coroutineScope.launch {
+                                drawerState.open()
+                            }
+                        }) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
                     },
