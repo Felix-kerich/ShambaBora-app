@@ -201,7 +201,7 @@ fun MyProductCard(
                     verticalAlignment = Alignment.Top
                 ) {
                     Text(
-                        text = product.name,
+                        text = product.name ?: "Unknown Product",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
@@ -244,7 +244,7 @@ fun MyProductCard(
                 }
                 
                 Text(
-                    text = product.category,
+                    text = product.category ?: "General",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -252,7 +252,7 @@ fun MyProductCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 Text(
-                    text = "KES ${String.format("%.2f", product.price)}",
+                    text = "KES ${String.format("%.2f", product.price ?: 0.0)}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -265,7 +265,7 @@ fun MyProductCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "${product.quantity} ${product.unit}",
+                        text = "${product.quantity ?: 0} ${product.unit ?: "units"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -7,22 +7,22 @@ data class Product(
     val id: Long? = null,
     
     @SerializedName("name")
-    val name: String,
+    val name: String? = null,
     
     @SerializedName("description")
-    val description: String,
+    val description: String? = null,
     
     @SerializedName("category")
-    val category: String,
+    val category: String? = null,
     
     @SerializedName("price")
-    val price: Double,
+    val price: Double? = null,
     
     @SerializedName("quantity")
-    val quantity: Int,
+    val quantity: Int? = null,
     
     @SerializedName("unit")
-    val unit: String,
+    val unit: String? = null,
     
     @SerializedName("imageUrl")
     val imageUrl: String? = null,

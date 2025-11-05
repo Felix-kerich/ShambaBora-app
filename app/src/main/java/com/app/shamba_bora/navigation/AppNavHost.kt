@@ -19,8 +19,10 @@ import com.app.shamba_bora.ui.screens.marketplace.MyProductsScreen
 import com.app.shamba_bora.ui.screens.marketplace.OrderListScreen
 import com.app.shamba_bora.ui.screens.records.RecordsScreen
 import com.app.shamba_bora.ui.screens.farm.ActivitiesScreen
+import com.app.shamba_bora.ui.screens.farm.ActivityDetailScreen
 import com.app.shamba_bora.ui.screens.farm.ExpensesScreen
 import com.app.shamba_bora.ui.screens.farm.YieldsScreen
+import com.app.shamba_bora.ui.screens.weather.WeatherScreen
 import com.app.shamba_bora.ui.screens.messaging.ConversationListScreen
 import com.app.shamba_bora.ui.screens.messaging.ChatScreen
 import com.app.shamba_bora.ui.screens.messaging.GroupChatScreen
@@ -154,6 +156,20 @@ fun AppNavHost(
         // Record Keeping Screens
         composable(Screen.Activities.route) {
             ActivitiesScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToActivityDetail = { activityId ->
+                    navController.navigate(Screen.ActivityDetail.createRoute(activityId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.ActivityDetail.route,
+            arguments = listOf(navArgument("activityId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val activityId = backStackEntry.arguments?.getLong("activityId") ?: 0L
+            ActivityDetailScreen(
+                activityId = activityId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -166,6 +182,12 @@ fun AppNavHost(
         
         composable(Screen.Yields.route) {
             YieldsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.Weather.route) {
+            WeatherScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

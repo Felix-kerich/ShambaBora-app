@@ -14,6 +14,9 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     
     // Record Keeping Screens
     object Activities : Screen("activities", "Farm Activities", "agriculture")
+    object ActivityDetail : Screen("activity_detail/{activityId}", "Activity Details", "info") {
+        fun createRoute(activityId: Long) = "activity_detail/$activityId"
+    }
     object Expenses : Screen("expenses", "Expenses", "payments")
     object Yields : Screen("yields", "Yields", "inventory")
     

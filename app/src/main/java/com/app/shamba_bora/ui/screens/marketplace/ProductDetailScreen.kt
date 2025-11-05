@@ -141,7 +141,7 @@ fun ProductDetailScreen(
                                 .padding(16.dp)
                         ) {
                             Text(
-                                text = product.name,
+                                text = product.name ?: "Unknown Product",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -154,7 +154,7 @@ fun ProductDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "KES ${String.format("%.2f", product.price)}",
+                                    text = "KES ${String.format("%.2f", product.price ?: 0.0)}",
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -165,7 +165,7 @@ fun ProductDetailScreen(
                                     color = MaterialTheme.colorScheme.secondaryContainer
                                 ) {
                                     Text(
-                                        text = product.category,
+                                        text = product.category ?: "General",
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -191,7 +191,7 @@ fun ProductDetailScreen(
                             DetailRow(
                                 icon = Icons.Default.Info,
                                 label = "Quantity Available",
-                                value = "${product.quantity} ${product.unit}"
+                                value = "${product.quantity ?: 0} ${product.unit ?: "units"}"
                             )
                             
                             if (!product.location.isNullOrEmpty()) {
@@ -219,7 +219,7 @@ fun ProductDetailScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             Text(
-                                text = product.description,
+                                text = product.description ?: "No description available",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -271,7 +271,7 @@ fun ProductDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     val qty = orderQuantity.toIntOrNull() ?: 1
-                                    val total = product.price * qty
+                                    val total = (product.price ?: 0.0) * qty
                                     Text(
                                         text = "Total: KES ${String.format("%.2f", total)}",
                                         style = MaterialTheme.typography.titleMedium,
@@ -283,7 +283,7 @@ fun ProductDetailScreen(
                                 Button(
                                     onClick = {
                                         val qty = orderQuantity.toIntOrNull() ?: 1
-                                        if (qty > 0 && qty <= product.quantity) {
+                                        if (qty > 0 && qty <= (product.quantity ?: 0)) {
                                             showOrderDialog = false
                                             onNavigateToCheckout(product, qty)
                                         }

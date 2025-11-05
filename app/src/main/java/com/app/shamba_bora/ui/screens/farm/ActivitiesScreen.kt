@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ActivitiesScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToActivityDetail: (Long) -> Unit = {},
     viewModel: FarmActivityViewModel = hiltViewModel()
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -152,7 +153,10 @@ fun ActivitiesScreen(
                         }
                     } else {
                         items(activities) { activity ->
-                            ActivityCard(activity = activity)
+                            ActivityCard(
+                                activity = activity,
+                                onViewDetails = onNavigateToActivityDetail
+                            )
                         }
                     }
                 }
@@ -174,7 +178,7 @@ fun ActivitiesScreen(
 @Composable
 fun ActivityCard(
     activity: FarmActivity,
-    onViewDetails: (Long) -> Unit = {},
+    onViewDetails: (Long) -> Unit,
     viewModel: FarmActivityViewModel = hiltViewModel()
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -189,7 +193,8 @@ fun ActivityCard(
     
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = { activity.id?.let { onViewDetails(it) } }
     ) {
         Column(
             modifier = Modifier
@@ -214,12 +219,12 @@ fun ActivityCard(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = activity.activityType,
+                            text = activity.activityType ?: "Unknown Activity",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = activity.cropType,
+                            text = activity.cropType ?: "Unknown Crop",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -249,14 +254,14 @@ fun ActivityCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = activity.activityDate,
+                        text = activity.activityDate ?: "No date",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             
-            if (activity.description != null) {
+            if (!activity.description.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = activity.description,
