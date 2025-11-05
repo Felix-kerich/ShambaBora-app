@@ -7,6 +7,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -39,8 +41,12 @@ fun RecordsScreen(
         }
         
         // Record Categories
-        items(getRecordCategories(onNavigateToActivities, onNavigateToExpenses, onNavigateToYields)) { category ->
-            RecordCategoryCard(category = category)
+        item {
+            RecordCategoriesSection(
+                onNavigateToActivities = onNavigateToActivities,
+                onNavigateToExpenses = onNavigateToExpenses,
+                onNavigateToYields = onNavigateToYields
+            )
         }
         
         // Statistics Section
@@ -61,13 +67,13 @@ fun RecordsScreen(
                 StatCard(
                     title = "Total Activities",
                     value = "24",
-                    icon = Icons.Default.Agriculture,
+                    icon = Icons.Default.Build,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Total Expenses",
                     value = "KES 45,000",
-                    icon = Icons.Default.Payments,
+                    icon = Icons.Default.Build,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -81,13 +87,13 @@ fun RecordsScreen(
                 StatCard(
                     title = "Total Yields",
                     value = "1,200 kg",
-                    icon = Icons.Default.Inventory,
+                    icon = Icons.Default.Build,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Total Revenue",
                     value = "KES 120,000",
-                    icon = Icons.Default.TrendingUp,
+                    icon = Icons.Default.Build,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -143,7 +149,7 @@ fun RecordCategoryCard(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Default.Build,
                 contentDescription = "Navigate",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -198,36 +204,52 @@ data class RecordCategory(
 )
 
 @Composable
-fun getRecordCategories(
+private fun RecordCategoriesSection(
     onNavigateToActivities: () -> Unit,
     onNavigateToExpenses: () -> Unit,
     onNavigateToYields: () -> Unit
-): List<RecordCategory> {
-    return listOf(
-        RecordCategory(
-            "Farm Activities",
-            "Track planting, harvesting, and other farm operations",
-            Icons.Default.Agriculture,
-            MaterialTheme.colorScheme.primary,
-            12,
-            onNavigateToActivities
-        ),
-        RecordCategory(
-            "Expenses",
-            "Record and manage your farming expenses",
-            Icons.Default.Payments,
-            MaterialTheme.colorScheme.error,
-            8,
-            onNavigateToExpenses
-        ),
-        RecordCategory(
-            "Yields",
-            "Log your harvest and yield information",
-            Icons.Default.Inventory,
-            MaterialTheme.colorScheme.tertiary,
-            4,
-            onNavigateToYields
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    val categories = remember(
+        onNavigateToActivities, 
+        onNavigateToExpenses, 
+        onNavigateToYields,
+        colorScheme
+    ) {
+        listOf(
+            RecordCategory(
+                "Farm Activities",
+                "Track planting, harvesting, and other farm operations",
+                Icons.Default.Build,
+                colorScheme.primary,
+                12,
+                onNavigateToActivities
+            ),
+            RecordCategory(
+                "Expenses",
+                "Record and manage your farming expenses",
+                Icons.Default.Build,
+                colorScheme.error,
+                8,
+                onNavigateToExpenses
+            ),
+            RecordCategory(
+                "Yields",
+                "Log your harvest and yield information",
+                Icons.Default.Build,
+                colorScheme.tertiary,
+                4,
+                onNavigateToYields
+            )
         )
-    )
+    }
+    
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        categories.forEach { category ->
+            RecordCategoryCard(category = category)
+        }
+    }
 }
+
 

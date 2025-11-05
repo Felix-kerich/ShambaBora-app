@@ -156,7 +156,7 @@ fun ExpenseCard(expense: FarmExpense) {
                 color = MaterialTheme.colorScheme.errorContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.Payments,
+                    imageVector = Icons.Default.Build,
                     contentDescription = null,
                     modifier = Modifier.padding(12.dp),
                     tint = MaterialTheme.colorScheme.onErrorContainer

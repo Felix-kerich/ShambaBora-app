@@ -5,7 +5,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.app.shamba_bora.utils.PreferenceManager
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
@@ -57,7 +68,7 @@ fun SettingsScreen(
             
             item {
                 SettingsMenuItem(
-                    icon = Icons.Default.Language,
+                    icon = Icons.Default.Build,
                     title = "Language",
                     subtitle = "Change app language",
                     onClick = { /* TODO: Navigate to language settings */ }
@@ -66,7 +77,7 @@ fun SettingsScreen(
             
             item {
                 SettingsMenuItem(
-                    icon = Icons.Default.DarkMode,
+                    icon = Icons.Default.Build,
                     title = "Theme",
                     subtitle = "Light or Dark mode",
                     onClick = { /* TODO: Navigate to theme settings */ }
@@ -97,7 +108,7 @@ fun SettingsScreen(
             
             item {
                 SettingsMenuItem(
-                    icon = Icons.Default.Help,
+                    icon = Icons.Default.Build,
                     title = "Help & Support",
                     subtitle = "Get help and contact support",
                     onClick = { /* TODO: Navigate to help */ }
@@ -106,7 +117,7 @@ fun SettingsScreen(
             
             item {
                 SettingsMenuItem(
-                    icon = Icons.Default.PrivacyTip,
+                    icon = Icons.Default.Build,
                     title = "Privacy Policy",
                     subtitle = "View our privacy policy",
                     onClick = { /* TODO: Navigate to privacy policy */ }
@@ -115,7 +126,7 @@ fun SettingsScreen(
             
             item {
                 SettingsMenuItem(
-                    icon = Icons.Default.Description,
+                    icon = Icons.Default.Build,
                     title = "Terms of Service",
                     subtitle = "View terms and conditions",
                     onClick = { /* TODO: Navigate to terms */ }
@@ -143,7 +154,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Logout,
+                            imageVector = Icons.Default.Lock,
                             contentDescription = "Logout",
                             modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.onErrorContainer
@@ -228,7 +239,7 @@ fun SettingsMenuItem(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Default.Build,
                 contentDescription = "Navigate",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

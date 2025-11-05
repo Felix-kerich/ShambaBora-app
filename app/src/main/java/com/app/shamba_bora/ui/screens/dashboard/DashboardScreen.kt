@@ -150,7 +150,7 @@ fun DashboardScreen(
                                 )
                             }
                             Icon(
-                                imageVector = Icons.Default.ChevronRight,
+                                imageVector = Icons.Default.Build,
                                 contentDescription = "Navigate",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -201,7 +201,7 @@ fun DashboardScreen(
                                     color = MaterialTheme.colorScheme.primaryContainer
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Agriculture,
+                                        imageVector = Icons.Default.Build,
                                         contentDescription = null,
                                         modifier = Modifier.padding(12.dp),
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -229,37 +229,35 @@ fun DashboardScreen(
     }
 }
 
-@Composable
 fun getQuickStats(dashboard: com.app.shamba_bora.data.model.Dashboard?): List<QuickStat> {
     return listOf(
         QuickStat(
             "Activities",
             "${dashboard?.totalActivities ?: 0}",
-            Icons.Default.Agriculture,
-            MaterialTheme.colorScheme.primary
+            Icons.Default.Build,
+            androidx.compose.ui.graphics.Color(0xFF6200EE) // Primary color
         ) {},
         QuickStat(
             "Expenses",
             "KES ${String.format("%.2f", dashboard?.totalExpensesAmount ?: 0.0)}",
-            Icons.Default.Payments,
-            MaterialTheme.colorScheme.error
+            Icons.Default.Build,
+            androidx.compose.ui.graphics.Color(0xFFB00020) // Error color
         ) {},
         QuickStat(
             "Yields",
             "${dashboard?.totalYieldRecords ?: 0} records",
-            Icons.Default.Inventory,
-            MaterialTheme.colorScheme.tertiary
+            Icons.Default.Build,
+            androidx.compose.ui.graphics.Color(0xFF03DAC6) // Tertiary color
         ) {},
         QuickStat(
             "Revenue",
             "KES ${String.format("%.2f", dashboard?.totalRevenue ?: 0.0)}",
-            Icons.Default.TrendingUp,
-            MaterialTheme.colorScheme.secondary
+            Icons.Default.Build,
+            androidx.compose.ui.graphics.Color(0xFF03A9F4) // Secondary color
         ) {}
     )
 }
 
-@Composable
 fun getQuickActions(
     onNavigateToActivities: () -> Unit,
     onNavigateToExpenses: () -> Unit,
@@ -271,28 +269,28 @@ fun getQuickActions(
             "Record Activity",
             "Log a new farm activity",
             Icons.Default.AddCircle,
-            MaterialTheme.colorScheme.primary,
+            androidx.compose.ui.graphics.Color(0xFF6200EE), // Primary color
             onNavigateToActivities
         ),
         QuickAction(
             "Add Expense",
             "Record a new expense",
-            Icons.Default.Payments,
-            MaterialTheme.colorScheme.error,
+            Icons.Default.Build,
+            androidx.compose.ui.graphics.Color(0xFFB00020), // Error color
             onNavigateToExpenses
         ),
         QuickAction(
             "Record Yield",
             "Log harvest information",
-            Icons.Default.Inventory,
-            MaterialTheme.colorScheme.tertiary,
+            Icons.Default.Build,
+            androidx.compose.ui.graphics.Color(0xFF03DAC6), // Tertiary color
             onNavigateToYields
         ),
         QuickAction(
             "Weather Forecast",
             "Check weather conditions",
-            Icons.Default.WbSunny,
-            MaterialTheme.colorScheme.secondary,
+            Icons.Default.Build,
+            androidx.compose.ui.graphics.Color(0xFF03A9F4), // Secondary color
             onNavigateToWeather
         )
     )

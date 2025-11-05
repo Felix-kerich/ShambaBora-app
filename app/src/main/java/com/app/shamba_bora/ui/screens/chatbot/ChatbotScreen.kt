@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChatbotScreen() {
@@ -50,7 +51,7 @@ fun ChatbotScreen() {
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.SmartToy,
+                        imageVector = Icons.Default.Build,
                         contentDescription = "AI Assistant",
                         modifier = Modifier.padding(12.dp),
                         tint = MaterialTheme.colorScheme.onPrimary
@@ -114,21 +115,31 @@ fun ChatbotScreen() {
                     maxLines = 4
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                val coroutineScope = rememberCoroutineScope()
+                var lastSentMessage by remember { mutableStateOf<String?>(null) }
+                
+                // Handle bot response when lastSentMessage changes
+                LaunchedEffect(lastSentMessage) {
+                    lastSentMessage?.let { message ->
+                        if (message.isNotBlank()) {
+                            kotlinx.coroutines.delay(1000)
+                            messages.add(ChatMessage("bot", "I understand you're asking about: $message. This is a demo response. In a real implementation, this would connect to your AI service."))
+                            listState.animateScrollToItem(messages.size - 1)
+                        }
+                    }
+                }
+                
                 FloatingActionButton(
                     onClick = {
                         if (messageText.isNotBlank()) {
-                            messages.add(ChatMessage("user", messageText))
-                            // Scroll to bottom
-                            LaunchedEffect(messages.size) {
-                                listState.animateScrollToItem(messages.size - 1)
-                            }
-                            // Simulate bot response
-                            LaunchedEffect(messageText) {
-                                kotlinx.coroutines.delay(1000)
-                                messages.add(ChatMessage("bot", "I understand you're asking about: $messageText. This is a demo response. In a real implementation, this would connect to your AI service."))
-                                listState.animateScrollToItem(messages.size - 1)
-                            }
+                            val userMessage = messageText
+                            messages.add(ChatMessage("user", userMessage))
+                            lastSentMessage = userMessage
                             messageText = ""
+                            // Scroll to show the user's message
+                            coroutineScope.launch {
+                                listState.scrollToItem(messages.size - 1)
+                            }
                         }
                     },
                     modifier = Modifier.size(56.dp),
@@ -158,7 +169,7 @@ fun ChatBubble(message: ChatMessage) {
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.SmartToy,
+                    imageVector = Icons.Default.Build,
                     contentDescription = "Bot",
                     modifier = Modifier.padding(8.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer

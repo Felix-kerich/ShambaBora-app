@@ -196,7 +196,7 @@ fun YieldCard(yield: YieldRecord) {
                         color = MaterialTheme.colorScheme.tertiaryContainer
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Inventory,
+                            imageVector = Icons.Default.Build,
                             contentDescription = null,
                             modifier = Modifier.padding(12.dp),
                             tint = MaterialTheme.colorScheme.onTertiaryContainer
@@ -224,14 +224,14 @@ fun YieldCard(yield: YieldRecord) {
                         color = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        text = "KES ${String.format("%.2f", yield.marketPrice * yield.yieldAmount)}",
+                        text = "KES ${String.format("%.2f", (yield.marketPrice ?: 0.0) * (yield.yieldAmount ?: 0.0))}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             
-            if (yield.areaHarvested > 0) {
+            if ((yield.areaHarvested ?: 0.0) > 0.0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
                     Text(
@@ -254,30 +254,47 @@ fun YieldCard(yield: YieldRecord) {
 @Composable
 fun AddYieldDialog(
     onDismiss: () -> Unit,
-    onSave: () -> Unit
+    onSave: (YieldRecord) -> Unit
 ) {
+    var cropType by remember { mutableStateOf("") }
+    var yieldAmount by remember { mutableStateOf("") }
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Yield Record") },
         text = {
             Column {
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = cropType,
+                    onValueChange = { cropType = it },
                     label = { Text("Crop Type") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = yieldAmount,
+                    onValueChange = { yieldAmount = it },
                     label = { Text("Yield Amount") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = onSave) {
+            TextButton(
+                onClick = {
+                    val amount = yieldAmount.toDoubleOrNull() ?: 0.0
+                    onSave(YieldRecord(
+                        id = null, // Will be set by the server/database
+                        cropType = cropType,
+                        harvestDate = java.time.LocalDate.now().toString(),
+                        yieldAmount = amount,
+                        unit = "kg", // Default unit, can be made configurable
+                        marketPrice = 0.0, // Default value, can be made configurable
+                        areaHarvested = 0.0 // Default value, can be made configurable
+                    ))
+                },
+                enabled = cropType.isNotBlank() && yieldAmount.isNotBlank() && yieldAmount.toDoubleOrNull() != null
+            ) {
                 Text("Save")
             }
         },

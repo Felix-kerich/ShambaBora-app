@@ -120,7 +120,7 @@ fun FeedScreen(
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { /* Add image */ }) {
-                        Icon(Icons.Default.Image, contentDescription = "Add Image")
+                        Icon(Icons.Default.Build, contentDescription = "Add Image")
                     }
                 }
             }
@@ -395,7 +395,7 @@ fun PostCard(
                     )
                 }
                 TextButton(onClick = {}) {
-                    Icon(Icons.Default.Comment, contentDescription = "Comment", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Build, contentDescription = "Comment", modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("${post.likeCount ?: 0}")
                 }
@@ -428,7 +428,7 @@ fun GroupCard(
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.Groups,
+                    imageVector = Icons.Default.Build,
                     contentDescription = null,
                     modifier = Modifier.padding(16.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -447,7 +447,7 @@ fun GroupCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = "Navigate")
+            Icon(Icons.Default.Build, contentDescription = "Navigate")
         }
     }
 }

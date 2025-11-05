@@ -30,7 +30,7 @@ fun DrawerMenu(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.LocalFlorist,
+                imageVector = Icons.Default.DateRange,
                 contentDescription = "ShambaBora",
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -63,7 +63,7 @@ fun DrawerMenu(
         )
         
         DrawerMenuItem(
-            icon = Icons.Default.Badge,
+            icon = Icons.Default.Build,
             title = "Farmer Profile",
             route = Screen.FarmerProfile.route,
             currentRoute = currentRoute,
@@ -71,7 +71,7 @@ fun DrawerMenu(
         )
         
         DrawerMenuItem(
-            icon = Icons.Default.WbSunny,
+            icon = Icons.Default.Build,
             title = "Weather",
             route = Screen.Weather.route,
             currentRoute = currentRoute,
@@ -79,7 +79,7 @@ fun DrawerMenu(
         )
         
         DrawerMenuItem(
-            icon = Icons.Default.Inventory2,
+            icon = Icons.Default.Build,
             title = "My Products",
             route = Screen.MyProducts.route,
             currentRoute = currentRoute,
@@ -87,7 +87,7 @@ fun DrawerMenu(
         )
         
         DrawerMenuItem(
-            icon = Icons.Default.Receipt,
+            icon = Icons.Default.Build,
             title = "Orders",
             route = Screen.Orders.route,
             currentRoute = currentRoute,
@@ -95,7 +95,7 @@ fun DrawerMenu(
         )
         
         DrawerMenuItem(
-            icon = Icons.Default.Groups,
+            icon = Icons.Default.Build,
             title = "Groups",
             route = Screen.Groups.route,
             currentRoute = currentRoute,
@@ -103,7 +103,7 @@ fun DrawerMenu(
         )
         
         DrawerMenuItem(
-            icon = Icons.Default.Message,
+            icon = Icons.Default.Build,
             title = "Messages",
             route = Screen.Messages.route,
             currentRoute = currentRoute,
@@ -123,7 +123,7 @@ fun DrawerMenu(
         )
         
         DrawerMenuItem(
-            icon = Icons.Default.Logout,
+            icon = Icons.Default.Lock,
             title = "Logout",
             route = "",
             currentRoute = null,

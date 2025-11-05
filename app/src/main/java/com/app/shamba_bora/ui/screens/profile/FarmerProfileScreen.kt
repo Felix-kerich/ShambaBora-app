@@ -4,7 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -15,6 +23,7 @@ import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.ProfileViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FarmerProfileScreen(
     onNavigateBack: () -> Unit,
@@ -118,7 +127,7 @@ fun FarmerProfileScreen(
                     
                     item {
                         DetailCard(
-                            icon = Icons.Default.LocationCity,
+                            icon = Icons.Default.LocationOn,
                             label = "County",
                             value = profile?.county ?: "Not set"
                         )
@@ -126,7 +135,7 @@ fun FarmerProfileScreen(
                     
                     item {
                         DetailCard(
-                            icon = Icons.Default.SquareFoot,
+                            icon = Icons.Default.Build,
                             label = "Farm Size",
                             value = "${profile?.farmSize ?: 0.0} acres"
                         )
@@ -134,7 +143,7 @@ fun FarmerProfileScreen(
                     
                     item {
                         DetailCard(
-                            icon = Icons.Default.Mail,
+                            icon = Icons.Default.MailOutline,
                             label = "Postal Address",
                             value = profile?.postalAddress ?: "Not set"
                         )
@@ -164,7 +173,7 @@ fun FarmerProfileScreen(
                     
                     item {
                         DetailCard(
-                            icon = Icons.Default.Agriculture,
+                            icon = Icons.Default.Build,
                             label = "Primary Crops",
                             value = profile?.primaryCrops?.joinToString(", ") ?: "Not set"
                         )
@@ -172,7 +181,7 @@ fun FarmerProfileScreen(
                     
                     item {
                         DetailCard(
-                            icon = Icons.Default.Work,
+                            icon = Icons.Default.Build,
                             label = "Farming Experience",
                             value = "${profile?.farmingExperience ?: 0} years"
                         )
@@ -181,7 +190,7 @@ fun FarmerProfileScreen(
                     item {
                         if (profile?.certifications?.isNotEmpty() == true) {
                             DetailCard(
-                                icon = Icons.Default.Verified,
+                                icon = Icons.Default.Build,
                                 label = "Certifications",
                                 value = profile.certifications.joinToString(", ")
                             )

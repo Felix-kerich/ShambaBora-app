@@ -6,7 +6,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon  
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +29,7 @@ import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.ProfileViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onNavigateToFarmerProfile: () -> Unit,
@@ -117,7 +129,7 @@ fun ProfileScreen(
                     // Menu Items
                     item {
                         ProfileMenuItem(
-                            icon = Icons.Default.Badge,
+                            icon = Icons.Default.Build,
                             title = "Farmer Profile",
                             subtitle = "View your farming profile",
                             onClick = onNavigateToFarmerProfile
@@ -235,7 +247,7 @@ fun ProfileMenuItem(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Default.Build,
                 contentDescription = "Navigate",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

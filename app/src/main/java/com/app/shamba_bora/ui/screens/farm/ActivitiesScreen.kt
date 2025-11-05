@@ -125,7 +125,7 @@ fun ActivityCard(activity: FarmActivity) {
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Agriculture,
+                            imageVector = Icons.Default.Build,
                             contentDescription = null,
                             modifier = Modifier.padding(12.dp),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer

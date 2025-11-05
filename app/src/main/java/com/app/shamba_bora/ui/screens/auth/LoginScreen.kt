@@ -41,7 +41,7 @@ fun LoginScreen(
             color = MaterialTheme.colorScheme.primaryContainer
         ) {
             Icon(
-                imageVector = Icons.Default.LocalFlorist,
+                imageVector = Icons.Default.Build,
                 contentDescription = "ShambaBora",
                 modifier = Modifier.padding(32.dp),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -89,7 +89,7 @@ fun LoginScreen(
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
-                        if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        if (passwordVisible) Icons.Default.Build else Icons.Default.Build,
                         contentDescription = if (passwordVisible) "Hide password" else "Show password"
                     )
                 }

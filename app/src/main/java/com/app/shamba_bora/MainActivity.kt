@@ -7,6 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Face
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -120,9 +122,9 @@ fun MainScreen() {
                         val bottomNavItems = listOf(
                             Screen.Home to Icons.Default.Home,
                             Screen.Marketplace to Icons.Default.ShoppingCart,
-                            Screen.Collaboration to Icons.Default.People,
-                            Screen.Records to Icons.Default.Description,
-                            Screen.Chatbot to Icons.Default.Chat
+                            Screen.Collaboration to Icons.Outlined.Person,
+                            Screen.Records to Icons.Default.Info,
+                            Screen.Chatbot to Icons.Default.Face
                         )
                         
                         bottomNavItems.forEach { (screen, icon) ->

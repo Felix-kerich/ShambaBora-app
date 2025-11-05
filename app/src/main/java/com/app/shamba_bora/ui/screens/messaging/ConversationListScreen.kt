@@ -7,7 +7,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +32,7 @@ import com.app.shamba_bora.utils.PreferenceManager
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.MessagingViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationListScreen(
     onNavigateToChat: (Long) -> Unit,
@@ -42,7 +52,7 @@ fun ConversationListScreen(
                 title = { Text("Messages") },
                 actions = {
                     IconButton(onClick = onNavigateToGroups) {
-                        Icon(Icons.Default.Group, contentDescription = "Groups")
+                        Icon(Icons.Default.Build, contentDescription = "Groups")
                     }
                 }
             )
@@ -92,7 +102,7 @@ fun ConversationListScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Message,
+                                imageVector = Icons.Default.MailOutline,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant

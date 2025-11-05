@@ -174,7 +174,7 @@ fun ProductCard(
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Image,
+                            imageVector = Icons.Default.Build,
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxSize()
