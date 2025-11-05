@@ -202,7 +202,7 @@ fun CheckoutScreen(
                 onValueChange = { notes = it },
                 label = { Text("Additional Notes (Optional)") },
                 leadingIcon = {
-                    Icon(Icons.Default.Notes, contentDescription = null)
+                    Icon(Icons.Default.Edit, contentDescription = null)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
@@ -308,7 +308,7 @@ fun CheckoutScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Icon(
-                    imageVector = Icons.Default.Payment,
+                    imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )

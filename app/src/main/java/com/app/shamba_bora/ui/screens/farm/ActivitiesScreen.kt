@@ -228,7 +228,7 @@ fun ActivityCard(
                 
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(
-                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        imageVector = if (expanded) Icons.Default.Info else Icons.Default.Info,
                         contentDescription = if (expanded) "Collapse" else "Expand"
                     )
                 }
@@ -293,7 +293,7 @@ fun ActivityCard(
                     if (activity.cost != null && activity.cost > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.AttachMoney,
+                                imageVector = Icons.Default.Info,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.error

@@ -208,7 +208,7 @@ fun CreatePostScreen(
                 placeholder = { Text("https://example.com/image.jpg") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
-                    Icon(Icons.Default.Image, contentDescription = null)
+                    Icon(Icons.Default.Star, contentDescription = null)
                 },
                 singleLine = true
             )

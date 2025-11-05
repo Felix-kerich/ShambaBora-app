@@ -304,7 +304,7 @@ fun AddExpenseDialog(
                     readOnly = true,
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = "Select Date")
+                            Icon(Icons.Default.DateRange, contentDescription = "Select Date")
                         }
                     },
                     singleLine = true

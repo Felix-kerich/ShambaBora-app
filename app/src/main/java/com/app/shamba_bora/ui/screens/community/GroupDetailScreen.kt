@@ -99,13 +99,13 @@ fun GroupDetailScreen(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     text = { Text("Posts") },
-                    icon = { Icon(Icons.Default.Article, contentDescription = null) }
+                    icon = { Icon(Icons.Default.Info, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     text = { Text("Chat") },
-                    icon = { Icon(Icons.Default.Chat, contentDescription = null) }
+                    icon = { Icon(Icons.Default.MailOutline, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 2,
