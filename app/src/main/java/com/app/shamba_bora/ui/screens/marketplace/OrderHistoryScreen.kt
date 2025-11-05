@@ -233,27 +233,3 @@ fun OrderCard(order: Order) {
     }
 }
 
-@Composable
-fun OrderStatusChip(status: String) {
-    val (backgroundColor, textColor) = when (status.uppercase()) {
-        "PENDING" -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        "CONFIRMED" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        "SHIPPED" -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        "DELIVERED" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        "CANCELLED" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = backgroundColor
-    ) {
-        Text(
-            text = status,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = textColor
-        )
-    }
-}
