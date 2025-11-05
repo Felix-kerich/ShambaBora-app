@@ -248,7 +248,7 @@ fun YieldDetailScreen(
                                         }
                                     }
                                     
-                                    yieldRecord.quality?.let { quality ->
+                                    yieldRecord.qualityGrade?.let { quality ->
                                         Divider(modifier = Modifier.padding(vertical = 12.dp))
                                         DetailRow(
                                             icon = Icons.Default.Star,

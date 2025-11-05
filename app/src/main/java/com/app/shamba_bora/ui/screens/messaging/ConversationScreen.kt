@@ -1,10 +1,8 @@
 package com.app.shamba_bora.ui.screens.messaging
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -175,7 +173,7 @@ fun ConversationScreen(
                                 if (messageText.isNotBlank()) {
                                     IconButton(onClick = {
                                         val message = DirectMessage(
-                                            receiverId = otherUserId,
+                                            recipientId = otherUserId,
                                             senderId = currentUserId,
                                             content = messageText
                                         )
@@ -200,73 +198,6 @@ fun ConversationScreen(
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MessageBubble(
-    message: DirectMessage,
-    isSentByMe: Boolean
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isSentByMe) Arrangement.End else Arrangement.Start
-    ) {
-        Surface(
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isSentByMe) 16.dp else 4.dp,
-                bottomEnd = if (isSentByMe) 4.dp else 16.dp
-            ),
-            color = if (isSentByMe) 
-                MaterialTheme.colorScheme.primaryContainer 
-            else 
-                MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.widthIn(max = 280.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isSentByMe)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = message.createdAt ?: "",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isSentByMe)
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                    if (isSentByMe) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = if (message.status == "READ") 
-                                Icons.Default.Done 
-                            else 
-                                Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = if (message.status == "READ")
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
                     }
                 }
