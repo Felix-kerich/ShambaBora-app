@@ -29,6 +29,12 @@ class MarketplaceViewModel @Inject constructor(
     private val _ordersState = MutableStateFlow<Resource<PageResponse<Order>>>(Resource.Loading())
     val ordersState: StateFlow<Resource<PageResponse<Order>>> = _ordersState.asStateFlow()
     
+    private val _buyerOrdersState = MutableStateFlow<Resource<PageResponse<Order>>>(Resource.Loading())
+    val buyerOrdersState: StateFlow<Resource<PageResponse<Order>>> = _buyerOrdersState.asStateFlow()
+    
+    private val _sellerOrdersState = MutableStateFlow<Resource<PageResponse<Order>>>(Resource.Loading())
+    val sellerOrdersState: StateFlow<Resource<PageResponse<Order>>> = _sellerOrdersState.asStateFlow()
+    
     init {
         loadProducts()
     }
@@ -93,10 +99,27 @@ class MarketplaceViewModel @Inject constructor(
         }
     }
     
+    fun loadOrdersByBuyer(buyerId: Long) {
+        viewModelScope.launch {
+            _buyerOrdersState.value = Resource.Loading()
+            _buyerOrdersState.value = repository.getOrdersByBuyer(buyerId)
+        }
+    }
+    
+    fun loadOrdersBySeller(sellerId: Long) {
+        viewModelScope.launch {
+            _sellerOrdersState.value = Resource.Loading()
+            _sellerOrdersState.value = repository.getOrdersBySeller(sellerId)
+        }
+    }
+    
     fun updateOrderStatus(id: Long, status: String) {
         viewModelScope.launch {
             repository.updateOrderStatus(id, status)
-            loadOrders()
+            // Reload both buyer and seller orders
+            val userId = PreferenceManager.getUserId()
+            loadOrdersByBuyer(userId)
+            loadOrdersBySeller(userId)
         }
     }
     

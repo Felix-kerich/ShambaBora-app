@@ -25,13 +25,12 @@ import com.app.shamba_bora.viewmodel.MarketplaceViewModel
 fun ProductDetailScreen(
     productId: Long,
     onNavigateBack: () -> Unit,
-    onNavigateToPlaceOrder: (Long) -> Unit,
+    onNavigateToCheckout: (Product, Int) -> Unit,
     viewModel: MarketplaceViewModel = hiltViewModel()
 ) {
     val productState by viewModel.productState.collectAsState()
     var showOrderDialog by remember { mutableStateOf(false) }
     var orderQuantity by remember { mutableStateOf("1") }
-    var deliveryAddress by remember { mutableStateOf("") }
     
     LaunchedEffect(productId) {
         viewModel.loadProduct(productId)
@@ -257,7 +256,7 @@ fun ProductDetailScreen(
                     if (showOrderDialog) {
                         AlertDialog(
                             onDismissRequest = { showOrderDialog = false },
-                            title = { Text("Place Order") },
+                            title = { Text("Select Quantity") },
                             text = {
                                 Column {
                                     OutlinedTextField(
@@ -265,15 +264,10 @@ fun ProductDetailScreen(
                                         onValueChange = { orderQuantity = it },
                                         label = { Text("Quantity") },
                                         modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
-                                        value = deliveryAddress,
-                                        onValueChange = { deliveryAddress = it },
-                                        label = { Text("Delivery Address (Optional)") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        minLines = 2
+                                        singleLine = true,
+                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                                        )
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     val qty = orderQuantity.toIntOrNull() ?: 1
@@ -289,16 +283,13 @@ fun ProductDetailScreen(
                                 Button(
                                     onClick = {
                                         val qty = orderQuantity.toIntOrNull() ?: 1
-                                        viewModel.placeOrder(
-                                            productId = product.id ?: 0L,
-                                            quantity = qty,
-                                            deliveryAddress = deliveryAddress.ifBlank { null }
-                                        )
-                                        showOrderDialog = false
-                                        onNavigateBack()
+                                        if (qty > 0 && qty <= product.quantity) {
+                                            showOrderDialog = false
+                                            onNavigateToCheckout(product, qty)
+                                        }
                                     }
                                 ) {
-                                    Text("Confirm Order")
+                                    Text("Proceed to Checkout")
                                 }
                             },
                             dismissButton = {

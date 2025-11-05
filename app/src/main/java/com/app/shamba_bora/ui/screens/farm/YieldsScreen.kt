@@ -3,6 +3,8 @@ package com.app.shamba_bora.ui.screens.farm
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -301,6 +303,7 @@ fun YieldCard(yield: YieldRecord) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddYieldDialog(
     onDismiss: () -> Unit,
@@ -308,24 +311,104 @@ fun AddYieldDialog(
 ) {
     var cropType by remember { mutableStateOf("") }
     var yieldAmount by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("kg") }
+    var marketPrice by remember { mutableStateOf("") }
+    var areaHarvested by remember { mutableStateOf("") }
+    var harvestDate by remember { mutableStateOf(java.time.LocalDate.now().toString()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var expandedUnit by remember { mutableStateOf(false) }
+    
+    val units = listOf("kg", "tons", "bags", "pieces", "liters")
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Yield Record") },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 OutlinedTextField(
                     value = cropType,
                     onValueChange = { cropType = it },
-                    label = { Text("Crop Type") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Crop Type *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                
                 OutlinedTextField(
-                    value = yieldAmount,
-                    onValueChange = { yieldAmount = it },
-                    label = { Text("Yield Amount") },
-                    modifier = Modifier.fillMaxWidth()
+                    value = harvestDate,
+                    onValueChange = { },
+                    label = { Text("Harvest Date *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.CalendarToday, contentDescription = "Select Date")
+                        }
+                    },
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = yieldAmount,
+                        onValueChange = { yieldAmount = it },
+                        label = { Text("Yield Amount *") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = expandedUnit,
+                        onExpandedChange = { expandedUnit = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = unit,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Unit *") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUnit) },
+                            modifier = Modifier.menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedUnit,
+                            onDismissRequest = { expandedUnit = false }
+                        ) {
+                            units.forEach { u ->
+                                DropdownMenuItem(
+                                    text = { Text(u) },
+                                    onClick = {
+                                        unit = u
+                                        expandedUnit = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                OutlinedTextField(
+                    value = areaHarvested,
+                    onValueChange = { areaHarvested = it },
+                    label = { Text("Area Harvested (acres)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                OutlinedTextField(
+                    value = marketPrice,
+                    onValueChange = { marketPrice = it },
+                    label = { Text("Market Price per ${unit}") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
             }
         },
@@ -333,14 +416,15 @@ fun AddYieldDialog(
             TextButton(
                 onClick = {
                     val amount = yieldAmount.toDoubleOrNull() ?: 0.0
+                    val price = marketPrice.toDoubleOrNull()
+                    val area = areaHarvested.toDoubleOrNull()
                     onSave(YieldRecord(
-                        id = null, // Will be set by the server/database
                         cropType = cropType,
-                        harvestDate = java.time.LocalDate.now().toString(),
+                        harvestDate = harvestDate,
                         yieldAmount = amount,
-                        unit = "kg", // Default unit, can be made configurable
-                        marketPrice = 0.0, // Default value, can be made configurable
-                        areaHarvested = 0.0 // Default value, can be made configurable
+                        unit = unit,
+                        marketPrice = price,
+                        areaHarvested = area
                     ))
                 },
                 enabled = cropType.isNotBlank() && yieldAmount.isNotBlank() && yieldAmount.toDoubleOrNull() != null
@@ -354,24 +438,34 @@ fun AddYieldDialog(
             }
         }
     )
+    
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val instant = java.time.Instant.ofEpochMilli(millis)
+                            val date = java.time.LocalDate.ofInstant(instant, java.time.ZoneId.systemDefault())
+                            harvestDate = date.toString()
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
-
-data class YieldRecord(
-    val id: Long,
-    val cropType: String,
-    val harvestDate: String,
-    val yieldAmount: Double,
-    val unit: String,
-    val areaHarvested: Double,
-    val marketPrice: Double
-)
-
-@Composable
-fun getSampleYields(): List<YieldRecord> {
-    return listOf(
-        YieldRecord(1, "Maize", "2024-03-10", 500.0, "kg", 1.0, 120.0),
-        YieldRecord(2, "Maize", "2024-03-15", 450.0, "kg", 1.0, 120.0),
-        YieldRecord(3, "Maize", "2024-03-20", 250.0, "kg", 0.5, 125.0)
-    )
-}
-
