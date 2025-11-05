@@ -320,9 +320,9 @@ fun ActivityCard(
     if (showReminderDialog && activity.id != null) {
         AddReminderDialog(
             activityId = activity.id,
-            activityName = activity.activityType,
+            activityName = activity.activityType ?: "Activity",
             onDismiss = { showReminderDialog = false },
-            onSave = { request ->
+            onSave = { request: ActivityReminderRequest ->
                 viewModel.addReminder(activity.id, request)
                 showReminderDialog = false
             }

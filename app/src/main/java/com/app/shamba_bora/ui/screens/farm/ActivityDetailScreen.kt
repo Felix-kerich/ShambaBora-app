@@ -382,7 +382,7 @@ fun ActivityDetailScreen(
                             activityId = activityId,
                             activityName = activity.activityType ?: "Activity",
                             onDismiss = { showReminderDialog = false },
-                            onSave = { request ->
+                            onSave = { request: ActivityReminderRequest ->
                                 viewModel.addReminder(activityId, request)
                                 showReminderDialog = false
                             }
