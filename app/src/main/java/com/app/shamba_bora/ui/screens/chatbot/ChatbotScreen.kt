@@ -18,6 +18,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.app.shamba_bora.data.network.ChatbotQueryRequest
+import com.app.shamba_bora.data.network.ChatbotQueryResponse
+import com.app.shamba_bora.data.network.ApiService
+import com.app.shamba_bora.utils.Constants
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun ChatbotScreen() {
@@ -122,8 +131,52 @@ fun ChatbotScreen() {
                 LaunchedEffect(lastSentMessage) {
                     lastSentMessage?.let { message ->
                         if (message.isNotBlank()) {
-                            kotlinx.coroutines.delay(1000)
-                            messages.add(ChatMessage("bot", "I understand you're asking about: $message. This is a demo response. In a real implementation, this would connect to your AI service."))
+                            // Show typing indicator
+                            messages.add(ChatMessage("bot", "Typing...", isTyping = true))
+                            listState.animateScrollToItem(messages.size - 1)
+                            
+                            try {
+                                // Create chatbot API service
+                                val loggingInterceptor = HttpLoggingInterceptor().apply {
+                                    level = HttpLoggingInterceptor.Level.BODY
+                                }
+                                val okHttpClient = OkHttpClient.Builder()
+                                    .addInterceptor(loggingInterceptor)
+                                    .connectTimeout(30, TimeUnit.SECONDS)
+                                    .readTimeout(30, TimeUnit.SECONDS)
+                                    .writeTimeout(30, TimeUnit.SECONDS)
+                                    .build()
+                                    
+                                val retrofit = Retrofit.Builder()
+                                    .baseUrl(Constants.CHATBOT_BASE_URL)
+                                    .client(okHttpClient)
+                                    .addConverterFactory(GsonConverterFactory.create())
+                                    .build()
+                                    
+                                val chatbotApi = retrofit.create(ApiService::class.java)
+                                
+                                // Call the API
+                                val response = chatbotApi.queryChatbot(
+                                    ChatbotQueryRequest(question = message, k = 4)
+                                )
+                                
+                                // Remove typing indicator
+                                messages.removeAt(messages.size - 1)
+                                
+                                if (response.isSuccessful && response.body() != null) {
+                                    val answer = response.body()!!.answer
+                                    messages.add(ChatMessage("bot", answer))
+                                } else {
+                                    messages.add(ChatMessage("bot", "Sorry, I couldn't process your question. Please try again."))
+                                }
+                            } catch (e: Exception) {
+                                // Remove typing indicator
+                                if (messages.isNotEmpty() && messages.last().isTyping) {
+                                    messages.removeAt(messages.size - 1)
+                                }
+                                messages.add(ChatMessage("bot", "Error: ${e.message ?: "Unable to connect to the chatbot service."}"))
+                            }
+                            
                             listState.animateScrollToItem(messages.size - 1)
                         }
                     }
@@ -224,6 +277,7 @@ fun ChatBubble(message: ChatMessage) {
 
 data class ChatMessage(
     val sender: String, // "user" or "bot"
-    val text: String
+    val text: String,
+    val isTyping: Boolean = false
 )
 

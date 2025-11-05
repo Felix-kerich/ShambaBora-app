@@ -395,6 +395,10 @@ interface ApiService {
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20
     ): Response<ApiResponse<PageResponse<Message>>>
+    
+    // ========== CHATBOT ==========
+    @POST("query")
+    suspend fun queryChatbot(@Body request: ChatbotQueryRequest): Response<ChatbotQueryResponse>
 }
 
 // ========== REQUEST/RESPONSE MODELS ==========
@@ -433,6 +437,23 @@ data class ApiResponse<T>(
     val message: String? = null,
     val data: T? = null,
     val timestamp: String? = null
+)
+
+// Chatbot models
+data class ChatbotQueryRequest(
+    val question: String,
+    val k: Int = 4
+)
+
+data class ChatbotQueryResponse(
+    val answer: String,
+    val contexts: List<ChatbotContext>? = null
+)
+
+data class ChatbotContext(
+    val score: Double,
+    val id: String,
+    val text: String
 )
 
 // PageResponse is now defined in PageResponse.kt

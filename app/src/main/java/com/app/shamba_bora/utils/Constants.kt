@@ -5,6 +5,9 @@ object Constants {
     // For physical device, use: "http://<your-computer-ip>:8080"
     const val API_PREFIX = "/api"
     
+    const val CHATBOT_BASE_URL = "http://10.0.2.2:8000" // Chatbot API on port 8000
+    // For physical device, use: "http://<your-computer-ip>:8000"
+    
     // SharedPreferences Keys
     const val PREF_NAME = "ShambaBoraPrefs"
     const val KEY_TOKEN = "auth_token"

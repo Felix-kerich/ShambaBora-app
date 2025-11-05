@@ -57,4 +57,3 @@ object NetworkModule {
         return retrofit.create(ApiService::class.java)
     }
 }
-
