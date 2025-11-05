@@ -201,7 +201,7 @@ fun ActivityDetailScreen(
                                         DetailItem(
                                             icon = Icons.Default.Place,
                                             label = "Area Size",
-                                            value = "${activity.areaSize} ${activity.units ?: \"acres\"}"
+                                            value = "${activity.areaSize} ${activity.units ?: "acres"}"
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
