@@ -37,15 +37,17 @@ fun RegisterScreen(
     
     // Handle registration state changes
     LaunchedEffect(registerState) {
-        when (registerState) {
-            is Resource.Success -> {
-                viewModel.clearRegisterState()
-                onRegisterSuccess()
+        registerState?.let { state ->
+            when (state) {
+                is Resource.Success -> {
+                    viewModel.clearRegisterState()
+                    onRegisterSuccess()
+                }
+                is Resource.Error -> {
+                    errorMessage = state.message
+                }
+                is Resource.Loading -> { /* Show loading */ }
             }
-            is Resource.Error -> {
-                errorMessage = (registerState as Resource.Error).message
-            }
-            else -> {}
         }
     }
     
@@ -200,12 +202,13 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            enabled = registerState !is Resource.Loading && 
-                username.isNotBlank() && 
-                email.isNotBlank() && 
-                password.isNotBlank() && 
-                fullName.isNotBlank() &&
-                password == confirmPassword
+            enabled = (registerState == null || registerState is Resource.Error) && 
+                    username.isNotBlank() && 
+                    email.isNotBlank() && 
+                    password.isNotBlank() && 
+                    confirmPassword.isNotBlank() && 
+                    fullName.isNotBlank() && 
+                    password == confirmPassword
         ) {
             if (registerState is Resource.Loading) {
                 CircularProgressIndicator(
