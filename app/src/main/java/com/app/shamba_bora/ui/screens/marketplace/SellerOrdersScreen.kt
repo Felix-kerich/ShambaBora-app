@@ -163,7 +163,7 @@ fun SellerOrderCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OrderStatusChip(status = order.status)
+                    OrderStatusChip(status = order.status ?: "PENDING")
                     
                     IconButton(onClick = { expanded = !expanded }) {
                         Icon(

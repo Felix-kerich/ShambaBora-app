@@ -149,7 +149,7 @@ fun OrderCard(order: Order) {
                     )
                 }
                 
-                OrderStatusChip(status = order.status)
+                OrderStatusChip(status = order.status ?: "PENDING")
             }
             
             Spacer(modifier = Modifier.height(12.dp))
