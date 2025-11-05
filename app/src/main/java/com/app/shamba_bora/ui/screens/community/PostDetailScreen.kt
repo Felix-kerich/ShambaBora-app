@@ -198,17 +198,17 @@ fun PostDetailScreen(
                     }
                 }
             }
-        }
-        
-        // Comment Modal
-        if (showCommentModal) {
-            AddCommentModal(
-                postId = post.id ?: 0L,
-                onDismiss = { showCommentModal = false },
-                onAddComment = { comment ->
-                    viewModel.addComment(post.id ?: 0L, comment)
-                }
-            )
+            
+            // Comment Modal
+            if (showCommentModal) {
+                AddCommentModal(
+                    postId = post.id ?: 0L,
+                    onDismiss = { showCommentModal = false },
+                    onAddComment = { comment ->
+                        viewModel.addComment(post.id ?: 0L, comment)
+                    }
+                )
+            }
         }
     }
 }

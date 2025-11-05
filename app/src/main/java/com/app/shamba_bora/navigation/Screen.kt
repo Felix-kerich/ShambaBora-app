@@ -18,7 +18,13 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
         fun createRoute(activityId: Long) = "activity_detail/$activityId"
     }
     object Expenses : Screen("expenses", "Expenses", "payments")
+    object ExpenseDetail : Screen("expense_detail/{expenseId}", "Expense Details", "info") {
+        fun createRoute(expenseId: Long) = "expense_detail/$expenseId"
+    }
     object Yields : Screen("yields", "Yields", "inventory")
+    object YieldDetail : Screen("yield_detail/{yieldId}", "Yield Details", "info") {
+        fun createRoute(yieldId: Long) = "yield_detail/$yieldId"
+    }
     
     // Profile & Settings
     object Profile : Screen("profile", "Profile", "person")

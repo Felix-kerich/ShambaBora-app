@@ -24,6 +24,7 @@ import com.app.shamba_bora.viewmodel.FarmExpenseViewModel
 @Composable
 fun ExpensesScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToExpenseDetail: (Long) -> Unit = {},
     viewModel: FarmExpenseViewModel = hiltViewModel()
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -146,7 +147,10 @@ fun ExpensesScreen(
                         }
                     } else {
                         items(expenses) { expense ->
-                            ExpenseCard(expense = expense)
+                            ExpenseCard(
+                                expense = expense,
+                                onClick = { expense.id?.let { onNavigateToExpenseDetail(it) } }
+                            )
                         }
                     }
                 }
@@ -166,9 +170,13 @@ fun ExpensesScreen(
 }
 
 @Composable
-fun ExpenseCard(expense: FarmExpense) {
+fun ExpenseCard(
+    expense: FarmExpense,
+    onClick: () -> Unit = {}
+) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier

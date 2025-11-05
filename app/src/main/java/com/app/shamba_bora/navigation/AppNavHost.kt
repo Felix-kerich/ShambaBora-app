@@ -21,7 +21,9 @@ import com.app.shamba_bora.ui.screens.records.RecordsScreen
 import com.app.shamba_bora.ui.screens.farm.ActivitiesScreen
 import com.app.shamba_bora.ui.screens.farm.ActivityDetailScreen
 import com.app.shamba_bora.ui.screens.farm.ExpensesScreen
+import com.app.shamba_bora.ui.screens.farm.ExpenseDetailScreen
 import com.app.shamba_bora.ui.screens.farm.YieldsScreen
+import com.app.shamba_bora.ui.screens.farm.YieldDetailScreen
 import com.app.shamba_bora.ui.screens.weather.WeatherScreen
 import com.app.shamba_bora.ui.screens.messaging.ConversationListScreen
 import com.app.shamba_bora.ui.screens.messaging.ChatScreen
@@ -217,12 +219,40 @@ fun AppNavHost(
         
         composable(Screen.Expenses.route) {
             ExpensesScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToExpenseDetail = { expenseId ->
+                    navController.navigate(Screen.ExpenseDetail.createRoute(expenseId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.ExpenseDetail.route,
+            arguments = listOf(navArgument("expenseId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val expenseId = backStackEntry.arguments?.getLong("expenseId") ?: 0L
+            ExpenseDetailScreen(
+                expenseId = expenseId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         
         composable(Screen.Yields.route) {
             YieldsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToYieldDetail = { yieldId ->
+                    navController.navigate(Screen.YieldDetail.createRoute(yieldId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.YieldDetail.route,
+            arguments = listOf(navArgument("yieldId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val yieldId = backStackEntry.arguments?.getLong("yieldId") ?: 0L
+            YieldDetailScreen(
+                yieldId = yieldId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

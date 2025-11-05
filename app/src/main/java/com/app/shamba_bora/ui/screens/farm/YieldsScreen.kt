@@ -24,6 +24,7 @@ import com.app.shamba_bora.viewmodel.YieldRecordViewModel
 @Composable
 fun YieldsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToYieldDetail: (Long) -> Unit = {},
     viewModel: YieldRecordViewModel = hiltViewModel()
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -181,7 +182,10 @@ fun YieldsScreen(
                         }
                     } else{
                         items(yields) { yield ->
-                            YieldCard(yield = yield)
+                            YieldCard(
+                                yield = yield,
+                                onClick = { yield.id?.let { onNavigateToYieldDetail(it) } }
+                            )
                         }
                     }
                 }
@@ -201,9 +205,13 @@ fun YieldsScreen(
 }
 
 @Composable
-fun YieldCard(yield: YieldRecord) {
+fun YieldCard(
+    yield: YieldRecord,
+    onClick: () -> Unit = {}
+) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier
