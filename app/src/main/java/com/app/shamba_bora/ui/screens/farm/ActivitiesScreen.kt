@@ -18,6 +18,7 @@ import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.FarmActivityViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActivitiesScreen(
     onNavigateBack: () -> Unit,
@@ -31,6 +32,20 @@ fun ActivitiesScreen(
     }
     
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Farm Activities") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
@@ -60,27 +75,72 @@ fun ActivitiesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
-                        Text(
-                            text = "Farm Activities",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Track all your farming activities",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Agriculture,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        text = "${activities.size} Activities",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = "Track all your farming operations",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
                     }
                     
                     if (activities.isEmpty()) {
                         item {
-                            Text(
-                                text = "No activities recorded yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Agriculture,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "No activities yet",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Tap + to add your first activity",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     } else {
                         items(activities) { activity ->
@@ -125,7 +185,7 @@ fun ActivityCard(activity: FarmActivity) {
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Build,
+                            imageVector = getActivityIcon(activity.activityType),
                             contentDescription = null,
                             modifier = Modifier.padding(12.dp),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -160,14 +220,47 @@ fun ActivityCard(activity: FarmActivity) {
                 )
             }
             
-            if (activity.areaSize != null && activity.areaSize > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row {
-                    Text(
-                        text = "Area: ${activity.areaSize} ${activity.units ?: ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            if (activity.areaSize != null && activity.areaSize > 0 || activity.cost != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (activity.areaSize != null && activity.areaSize > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Landscape,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${activity.areaSize} ${activity.units ?: "acres"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (activity.cost != null && activity.cost > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Payments,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "KES ${String.format("%.2f", activity.cost)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -241,5 +334,19 @@ fun AddActivityDialog(
             }
         }
     )
+}
+
+@Composable
+fun getActivityIcon(activityType: String): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (activityType.lowercase()) {
+        "planting", "plowing", "seeding" -> Icons.Default.Agriculture
+        "watering", "irrigation" -> Icons.Default.WaterDrop
+        "fertilizing", "fertilizer" -> Icons.Default.Grass
+        "harvesting", "harvest" -> Icons.Default.Inventory
+        "weeding" -> Icons.Default.Yard
+        "spraying", "pesticide" -> Icons.Default.Spa
+        "pruning" -> Icons.Default.ContentCut
+        else -> Icons.Default.Agriculture
+    }
 }
 

@@ -18,6 +18,7 @@ import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.FarmExpenseViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpensesScreen(
     onNavigateBack: () -> Unit,
@@ -33,6 +34,20 @@ fun ExpensesScreen(
     }
     
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Farm Expenses") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddDialog = true },
@@ -66,19 +81,6 @@ fun ExpensesScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item {
-                        Text(
-                            text = "Farm Expenses",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Track all your farming expenses",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                     
                     // Total Expenses Card
                     item {
@@ -111,12 +113,34 @@ fun ExpensesScreen(
                     
                     if (expenses.isEmpty()) {
                         item {
-                            Text(
-                                text = "No expenses recorded yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Payments,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "No expenses yet",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Tap + to record your first expense",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     } else {
                         items(expenses) { expense ->
@@ -156,7 +180,7 @@ fun ExpenseCard(expense: FarmExpense) {
                 color = MaterialTheme.colorScheme.errorContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.Build,
+                    imageVector = getCategoryIcon(expense.category),
                     contentDescription = null,
                     modifier = Modifier.padding(12.dp),
                     tint = MaterialTheme.colorScheme.onErrorContainer
@@ -265,5 +289,21 @@ fun AddExpenseDialog(
             }
         }
     )
+}
+
+@Composable
+fun getCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (category.lowercase()) {
+        "seeds" -> Icons.Default.Grass
+        "fertilizer", "fertilizers" -> Icons.Default.Science
+        "pesticides", "pesticide" -> Icons.Default.Spa
+        "labor", "labour" -> Icons.Default.People
+        "equipment" -> Icons.Default.Build
+        "fuel" -> Icons.Default.LocalGasStation
+        "water", "irrigation" -> Icons.Default.WaterDrop
+        "transport", "transportation" -> Icons.Default.LocalShipping
+        "maintenance" -> Icons.Default.Settings
+        else -> Icons.Default.Payments
+    }
 }
 

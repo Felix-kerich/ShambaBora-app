@@ -6,35 +6,93 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.app.shamba_bora.utils.Resource
+import com.app.shamba_bora.viewmodel.FarmActivityViewModel
+import com.app.shamba_bora.viewmodel.FarmExpenseViewModel
+import com.app.shamba_bora.viewmodel.YieldRecordViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordsScreen(
     onNavigateToActivities: () -> Unit,
     onNavigateToExpenses: () -> Unit,
-    onNavigateToYields: () -> Unit
+    onNavigateToYields: () -> Unit,
+    activityViewModel: FarmActivityViewModel = hiltViewModel(),
+    expenseViewModel: FarmExpenseViewModel = hiltViewModel(),
+    yieldViewModel: YieldRecordViewModel = hiltViewModel()
 ) {
+    val activitiesState by activityViewModel.activitiesState.collectAsState()
+    val expensesState by expenseViewModel.expensesState.collectAsState()
+    val yieldsState by yieldViewModel.yieldsState.collectAsState()
+    val totalExpensesState by expenseViewModel.totalExpensesState.collectAsState()
+    val totalRevenueState by yieldViewModel.totalRevenueState.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        activityViewModel.loadActivities()
+        expenseViewModel.loadExpenses()
+        expenseViewModel.loadTotalExpenses()
+        yieldViewModel.loadYieldRecords()
+        yieldViewModel.loadTotalRevenue()
+    }
+    
+    val activitiesCount = when (val state = activitiesState) {
+        is Resource.Success -> state.data?.totalElements ?: 0
+        else -> 0
+    }
+    
+    val expensesCount = when (val state = expensesState) {
+        is Resource.Success -> state.data?.totalElements ?: 0
+        else -> 0
+    }
+    
+    val yieldsCount = when (val state = yieldsState) {
+        is Resource.Success -> state.data?.totalElements ?: 0
+        else -> 0
+    }
+    
+    val totalExpenses = when (val state = totalExpensesState) {
+        is Resource.Success -> state.data ?: 0.0
+        else -> 0.0
+    }
+    
+    val totalRevenue = when (val state = totalRevenueState) {
+        is Resource.Success -> state.data ?: 0.0
+        else -> 0.0
+    }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Record Keeping") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    ) { paddingValues ->
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .padding(paddingValues)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             Text(
-                text = "Record Keeping",
-                style = MaterialTheme.typography.headlineMedium,
+                text = "Overview",
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Manage your farm activities, expenses, and yields",
+                text = "Track and manage all your farming records",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -45,7 +103,10 @@ fun RecordsScreen(
             RecordCategoriesSection(
                 onNavigateToActivities = onNavigateToActivities,
                 onNavigateToExpenses = onNavigateToExpenses,
-                onNavigateToYields = onNavigateToYields
+                onNavigateToYields = onNavigateToYields,
+                activitiesCount = activitiesCount.toInt(),
+                expensesCount = expensesCount.toInt(),
+                yieldsCount = yieldsCount.toInt()
             )
         }
         
@@ -66,14 +127,18 @@ fun RecordsScreen(
             ) {
                 StatCard(
                     title = "Total Activities",
-                    value = "24",
-                    icon = Icons.Default.Build,
+                    value = "$activitiesCount",
+                    icon = Icons.Default.Agriculture,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Total Expenses",
-                    value = "KES 45,000",
-                    icon = Icons.Default.Build,
+                    value = "KES ${String.format("%.0f", totalExpenses)}",
+                    icon = Icons.Default.Payments,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -85,15 +150,19 @@ fun RecordsScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StatCard(
-                    title = "Total Yields",
-                    value = "1,200 kg",
-                    icon = Icons.Default.Build,
+                    title = "Total Records",
+                    value = "$yieldsCount",
+                    icon = Icons.Default.Inventory,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     title = "Total Revenue",
-                    value = "KES 120,000",
-                    icon = Icons.Default.Build,
+                    value = "KES ${String.format("%.0f", totalRevenue)}",
+                    icon = Icons.Default.TrendingUp,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -149,7 +218,7 @@ fun RecordCategoryCard(
                 )
             }
             Icon(
-                imageVector = Icons.Default.Build,
+                imageVector = Icons.Default.ArrowForward,
                 contentDescription = "Navigate",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -162,10 +231,15 @@ fun StatCard(
     title: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    containerColor: androidx.compose.ui.graphics.Color,
+    contentColor: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.height(120.dp)
+        modifier = modifier.height(120.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor
+        )
     ) {
         Column(
             modifier = Modifier
@@ -176,18 +250,20 @@ fun StatCard(
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = MaterialTheme.colorScheme.primary
+                tint = contentColor,
+                modifier = Modifier.size(24.dp)
             )
             Column {
                 Text(
                     text = value,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
                 )
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = contentColor.copy(alpha = 0.7f)
                 )
             }
         }
@@ -207,43 +283,39 @@ data class RecordCategory(
 private fun RecordCategoriesSection(
     onNavigateToActivities: () -> Unit,
     onNavigateToExpenses: () -> Unit,
-    onNavigateToYields: () -> Unit
+    onNavigateToYields: () -> Unit,
+    activitiesCount: Int,
+    expensesCount: Int,
+    yieldsCount: Int
 ) {
     val colorScheme = MaterialTheme.colorScheme
     
-    val categories = remember(
-        onNavigateToActivities, 
-        onNavigateToExpenses, 
-        onNavigateToYields,
-        colorScheme
-    ) {
-        listOf(
-            RecordCategory(
-                "Farm Activities",
-                "Track planting, harvesting, and other farm operations",
-                Icons.Default.Build,
-                colorScheme.primary,
-                12,
-                onNavigateToActivities
-            ),
-            RecordCategory(
-                "Expenses",
-                "Record and manage your farming expenses",
-                Icons.Default.Build,
-                colorScheme.error,
-                8,
-                onNavigateToExpenses
-            ),
-            RecordCategory(
-                "Yields",
-                "Log your harvest and yield information",
-                Icons.Default.Build,
-                colorScheme.tertiary,
-                4,
-                onNavigateToYields
-            )
+    val categories = listOf(
+        RecordCategory(
+            "Farm Activities",
+            "Track planting, harvesting, and other farm operations",
+            Icons.Default.Agriculture,
+            colorScheme.primary,
+            activitiesCount,
+            onNavigateToActivities
+        ),
+        RecordCategory(
+            "Expenses",
+            "Record and manage your farming expenses",
+            Icons.Default.Payments,
+            colorScheme.error,
+            expensesCount,
+            onNavigateToExpenses
+        ),
+        RecordCategory(
+            "Yields",
+            "Log your harvest and yield information",
+            Icons.Default.Inventory,
+            colorScheme.tertiary,
+            yieldsCount,
+            onNavigateToYields
         )
-    }
+    )
     
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         categories.forEach { category ->

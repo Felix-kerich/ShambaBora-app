@@ -13,6 +13,10 @@ import com.app.shamba_bora.ui.screens.chatbot.ChatbotScreen
 import com.app.shamba_bora.ui.screens.collaboration.CollaborationScreen
 import com.app.shamba_bora.ui.screens.dashboard.DashboardScreen
 import com.app.shamba_bora.ui.screens.marketplace.MarketplaceScreen
+import com.app.shamba_bora.ui.screens.marketplace.AddProductScreen
+import com.app.shamba_bora.ui.screens.marketplace.ProductDetailScreen
+import com.app.shamba_bora.ui.screens.marketplace.MyProductsScreen
+import com.app.shamba_bora.ui.screens.marketplace.OrderListScreen
 import com.app.shamba_bora.ui.screens.records.RecordsScreen
 import com.app.shamba_bora.ui.screens.farm.ActivitiesScreen
 import com.app.shamba_bora.ui.screens.farm.ExpensesScreen
@@ -69,7 +73,56 @@ fun AppNavHost(
             MarketplaceScreen(
                 onNavigateToProductDetails = { productId ->
                     navController.navigate(Screen.ProductDetails.createRoute(productId))
+                },
+                onNavigateToAddProduct = { navController.navigate(Screen.AddProduct.route) },
+                onNavigateToMyProducts = { navController.navigate(Screen.MyProducts.route) },
+                onNavigateToOrders = { navController.navigate(Screen.Orders.route) }
+            )
+        }
+        
+        // Marketplace Detail Screens
+        composable(
+            route = Screen.ProductDetails.route,
+            arguments = listOf(navArgument("productId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+            ProductDetailScreen(
+                productId = productId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPlaceOrder = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.AddProduct.route) {
+            AddProductScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.EditProduct.route,
+            arguments = listOf(navArgument("productId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+            AddProductScreen(
+                productId = productId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.MyProducts.route) {
+            MyProductsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddProduct = { navController.navigate(Screen.AddProduct.route) },
+                onNavigateToEditProduct = { productId ->
+                    navController.navigate(Screen.EditProduct.createRoute(productId))
                 }
+            )
+        }
+        
+        composable(Screen.Orders.route) {
+            OrderListScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         

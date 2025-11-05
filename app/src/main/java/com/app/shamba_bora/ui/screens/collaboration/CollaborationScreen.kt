@@ -21,51 +21,92 @@ import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.CommunityViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollaborationScreen(
     onNavigateToPostDetails: (Long) -> Unit,
     onNavigateToGroups: () -> Unit,
     onNavigateToMessages: () -> Unit,
+    onNavigateToCreatePost: () -> Unit = {},
+    onNavigateToUserSearch: () -> Unit = {},
+    onNavigateToGroupDetail: (Long) -> Unit = {},
     viewModel: CommunityViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Tab Row
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Feed") }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Community") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                actions = {
+                    if (selectedTab == 2) {
+                        IconButton(onClick = onNavigateToUserSearch) {
+                            Icon(Icons.Default.PersonAdd, contentDescription = "Search Users")
+                        }
+                    }
+                }
             )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text("Groups") }
-            )
-            Tab(
-                selected = selectedTab == 2,
-                onClick = { selectedTab = 2 },
-                text = { Text("Messages") }
-            )
+        },
+        floatingActionButton = {
+            if (selectedTab == 0) {
+                FloatingActionButton(
+                    onClick = onNavigateToCreatePost,
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Create Post")
+                }
+            }
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Tab Row
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("Feed") },
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Groups") },
+                    icon = { Icon(Icons.Default.Groups, contentDescription = null) }
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    text = { Text("Messages") },
+                    icon = { Icon(Icons.Default.Message, contentDescription = null) }
+                )
+            }
         
-        // Content
-        when (selectedTab) {
-            0 -> FeedScreen(
-                onNavigateToPostDetails = onNavigateToPostDetails,
-                viewModel = viewModel
-            )
-            1 -> GroupsScreen(
-                onNavigateToGroups = onNavigateToGroups,
-                viewModel = viewModel
-            )
-            2 -> MessagesScreen(
-                onNavigateToMessages = onNavigateToMessages,
-                viewModel = viewModel
-            )
+            // Content
+            when (selectedTab) {
+                0 -> FeedScreen(
+                    onNavigateToPostDetails = onNavigateToPostDetails,
+                    onNavigateToCreatePost = onNavigateToCreatePost,
+                    viewModel = viewModel
+                )
+                1 -> GroupsScreen(
+                    onNavigateToGroups = onNavigateToGroups,
+                    onNavigateToGroupDetail = onNavigateToGroupDetail,
+                    viewModel = viewModel
+                )
+                2 -> MessagesScreen(
+                    onNavigateToMessages = onNavigateToMessages,
+                    onNavigateToUserSearch = onNavigateToUserSearch,
+                    viewModel = viewModel
+                )
+            }
         }
     }
 }
@@ -73,6 +114,7 @@ fun CollaborationScreen(
 @Composable
 fun FeedScreen(
     onNavigateToPostDetails: (Long) -> Unit,
+    onNavigateToCreatePost: () -> Unit,
     viewModel: CommunityViewModel
 ) {
     val feedState by viewModel.feedState.collectAsState()
@@ -91,7 +133,7 @@ fun FeedScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { /* Navigate to create post */ }
+                onClick = onNavigateToCreatePost
             ) {
                 Row(
                     modifier = Modifier
@@ -119,9 +161,11 @@ fun FeedScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = { /* Add image */ }) {
-                        Icon(Icons.Default.Build, contentDescription = "Add Image")
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = "Add Image",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
@@ -170,6 +214,7 @@ fun FeedScreen(
 @Composable
 fun GroupsScreen(
     onNavigateToGroups: () -> Unit,
+    onNavigateToGroupDetail: (Long) -> Unit,
     viewModel: CommunityViewModel
 ) {
     val groupsState by viewModel.groupsState.collectAsState()
@@ -228,7 +273,10 @@ fun GroupsScreen(
                     }
                 } else {
                     items(groups) { group ->
-                        GroupCard(group = group, onClick = {})
+                        GroupCard(
+                            group = group, 
+                            onClick = { onNavigateToGroupDetail(group.id ?: 0L) }
+                        )
                     }
                 }
             }
@@ -239,6 +287,7 @@ fun GroupsScreen(
 @Composable
 fun MessagesScreen(
     onNavigateToMessages: () -> Unit,
+    onNavigateToUserSearch: () -> Unit,
     viewModel: CommunityViewModel
 ) {
     val conversationsState by viewModel.conversationsState.collectAsState()
@@ -254,11 +303,26 @@ fun MessagesScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = "Recent Conversations",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Recent Conversations",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                TextButton(onClick = onNavigateToUserSearch) {
+                    Icon(
+                        imageVector = Icons.Default.PersonAdd,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("New Chat")
+                }
+            }
         }
         
         when (val state = conversationsState) {
@@ -395,9 +459,9 @@ fun PostCard(
                     )
                 }
                 TextButton(onClick = {}) {
-                    Icon(Icons.Default.Build, contentDescription = "Comment", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Comment, contentDescription = "Comment", modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("${post.likeCount ?: 0}")
+                    Text("${post.commentCount ?: 0}")
                 }
                 IconButton(onClick = {}) {
                     Icon(Icons.Default.Share, contentDescription = "Share")
@@ -428,7 +492,7 @@ fun GroupCard(
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.Build,
+                    imageVector = Icons.Default.Groups,
                     contentDescription = null,
                     modifier = Modifier.padding(16.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -447,7 +511,7 @@ fun GroupCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Icon(Icons.Default.Build, contentDescription = "Navigate")
+            Icon(Icons.Default.ArrowForward, contentDescription = "Navigate")
         }
     }
 }

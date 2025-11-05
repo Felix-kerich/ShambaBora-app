@@ -24,29 +24,60 @@ import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.MarketplaceViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketplaceScreen(
     onNavigateToProductDetails: (Long) -> Unit,
+    onNavigateToAddProduct: () -> Unit = {},
+    onNavigateToMyProducts: () -> Unit = {},
+    onNavigateToOrders: () -> Unit = {},
     viewModel: MarketplaceViewModel = hiltViewModel()
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All") }
     val productsState by viewModel.productsState.collectAsState()
     
     LaunchedEffect(Unit) {
         viewModel.loadProducts()
     }
     
-    LaunchedEffect(searchQuery) {
+    LaunchedEffect(searchQuery, selectedCategory) {
         if (searchQuery.length > 2 || searchQuery.isEmpty()) {
-            viewModel.loadProducts(if (searchQuery.isNotEmpty()) searchQuery else null)
+            val query = if (selectedCategory != "All") selectedCategory else searchQuery.ifEmpty { null }
+            viewModel.loadProducts(query)
         }
     }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Marketplace") },
+                actions = {
+                    IconButton(onClick = onNavigateToMyProducts) {
+                        Icon(Icons.Default.List, contentDescription = "My Products")
+                    }
+                    IconButton(onClick = onNavigateToOrders) {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = "Orders")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToAddProduct,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Product")
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
         // Search Bar
         OutlinedTextField(
             value = searchQuery,
