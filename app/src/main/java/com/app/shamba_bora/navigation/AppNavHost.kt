@@ -26,6 +26,10 @@ import com.app.shamba_bora.ui.screens.weather.WeatherScreen
 import com.app.shamba_bora.ui.screens.messaging.ConversationListScreen
 import com.app.shamba_bora.ui.screens.messaging.ChatScreen
 import com.app.shamba_bora.ui.screens.messaging.GroupChatScreen
+import com.app.shamba_bora.ui.screens.messaging.ConversationScreen
+import com.app.shamba_bora.ui.screens.community.PostDetailScreen
+import com.app.shamba_bora.ui.screens.community.GroupsScreen
+import com.app.shamba_bora.ui.screens.community.GroupDetailScreen
 import com.app.shamba_bora.ui.screens.profile.ProfileScreen
 import com.app.shamba_bora.ui.screens.profile.FarmerProfileScreen
 import com.app.shamba_bora.ui.screens.profile.EditProfileScreen
@@ -137,7 +141,44 @@ fun AppNavHost(
                     navController.navigate(Screen.PostDetail.createRoute(postId))
                 },
                 onNavigateToGroups = { navController.navigate(Screen.Groups.route) },
-                onNavigateToMessages = { navController.navigate(Screen.Messages.route) }
+                onNavigateToMessages = { navController.navigate(Screen.Messages.route) },
+                onNavigateToGroupDetail = { groupId ->
+                    navController.navigate(Screen.GroupDetail.createRoute(groupId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.PostDetail.route,
+            arguments = listOf(navArgument("postId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getLong("postId") ?: 0L
+            PostDetailScreen(
+                postId = postId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(Screen.Groups.route) {
+            GroupsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToGroupDetail = { groupId ->
+                    navController.navigate(Screen.GroupDetail.createRoute(groupId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.GroupDetail.route,
+            arguments = listOf(navArgument("groupId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getLong("groupId") ?: 0L
+            GroupDetailScreen(
+                groupId = groupId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPostDetails = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                }
             )
         }
         
@@ -196,9 +237,25 @@ fun AppNavHost(
         composable(Screen.Messages.route) {
             ConversationListScreen(
                 onNavigateToChat = { otherUserId ->
-                    navController.navigate("chat/$otherUserId")
+                    navController.navigate(Screen.Conversation.createRoute(otherUserId, "User $otherUserId"))
                 },
                 onNavigateToGroups = { navController.navigate(Screen.Groups.route) }
+            )
+        }
+        
+        composable(
+            route = Screen.Conversation.route,
+            arguments = listOf(
+                navArgument("userId") { type = NavType.LongType },
+                navArgument("userName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            val userName = backStackEntry.arguments?.getString("userName") ?: "User"
+            ConversationScreen(
+                otherUserId = userId,
+                otherUserName = userName,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         

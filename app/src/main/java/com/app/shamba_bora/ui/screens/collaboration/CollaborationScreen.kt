@@ -18,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
+import com.app.shamba_bora.ui.components.CreatePostModal
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.CommunityViewModel
 
@@ -33,6 +34,7 @@ fun CollaborationScreen(
     viewModel: CommunityViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+    var showCreatePostModal by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -54,7 +56,7 @@ fun CollaborationScreen(
         floatingActionButton = {
             if (selectedTab == 0) {
                 FloatingActionButton(
-                    onClick = onNavigateToCreatePost,
+                    onClick = { showCreatePostModal = true },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Create Post")
@@ -108,6 +110,16 @@ fun CollaborationScreen(
                 )
             }
         }
+        
+        // Create Post Modal
+        if (showCreatePostModal) {
+            CreatePostModal(
+                onDismiss = { showCreatePostModal = false },
+                onCreatePost = { post ->
+                    viewModel.createPost(post)
+                }
+            )
+        }
     }
 }
 
@@ -133,7 +145,7 @@ fun FeedScreen(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onNavigateToCreatePost
+                onClick = { /* Will be handled by FAB */ }
             ) {
                 Row(
                     modifier = Modifier

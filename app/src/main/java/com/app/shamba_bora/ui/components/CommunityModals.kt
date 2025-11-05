@@ -1,0 +1,366 @@
+package com.app.shamba_bora.ui.components
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.app.shamba_bora.data.model.Post
+import com.app.shamba_bora.data.model.PostComment
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreatePostModal(
+    onDismiss: () -> Unit,
+    onCreatePost: (Post) -> Unit,
+    groupId: Long? = null
+) {
+    var content by remember { mutableStateOf("") }
+    var imageUrl by remember { mutableStateOf("") }
+    var selectedPostType by remember { mutableStateOf("GENERAL") }
+    var expandedPostType by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    
+    val postTypes = listOf(
+        "GENERAL" to "General",
+        "QUESTION" to "Question",
+        "ADVICE" to "Advice",
+        "SHARE_EXPERIENCE" to "Share Experience",
+        "MARKET_UPDATE" to "Market Update",
+        "WEATHER_ALERT" to "Weather Alert",
+        "ANNOUNCEMENT" to "Announcement"
+    )
+    
+    fun validateAndPost() {
+        when {
+            content.isBlank() -> {
+                errorMessage = "Post content cannot be empty"
+                showError = true
+            }
+            content.length < 10 -> {
+                errorMessage = "Post content must be at least 10 characters"
+                showError = true
+            }
+            else -> {
+                val post = Post(
+                    content = content,
+                    imageUrl = imageUrl.ifBlank { null },
+                    postType = selectedPostType,
+                    groupId = groupId
+                )
+                onCreatePost(post)
+                onDismiss()
+            }
+        }
+    }
+    
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.9f),
+            shape = MaterialTheme.shapes.large
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Header
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Create,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (groupId != null) "Create Group Post" else "Create Post",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Row {
+                            TextButton(onClick = onDismiss) {
+                                Text("Cancel")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = { validateAndPost() },
+                                enabled = content.isNotBlank()
+                            ) {
+                                Text("Post")
+                            }
+                        }
+                    }
+                }
+                
+                // Content
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    if (showError) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = errorMessage,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Post Type Selector
+                    ExposedDropdownMenuBox(
+                        expanded = expandedPostType,
+                        onExpandedChange = { expandedPostType = it }
+                    ) {
+                        OutlinedTextField(
+                            value = postTypes.find { it.first == selectedPostType }?.second ?: "General",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Post Type") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPostType) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null
+                                )
+                            }
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedPostType,
+                            onDismissRequest = { expandedPostType = false }
+                        ) {
+                            postTypes.forEach { (value, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        selectedPostType = value
+                                        expandedPostType = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Content Input
+                    OutlinedTextField(
+                        value = content,
+                        onValueChange = { 
+                            content = it
+                            showError = false
+                        },
+                        label = { Text("What's on your mind?") },
+                        placeholder = { Text("Share your farming experience, ask questions, or provide advice...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        minLines = 8,
+                        maxLines = 15
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Image URL Input
+                    OutlinedTextField(
+                        value = imageUrl,
+                        onValueChange = { imageUrl = it },
+                        label = { Text("Image URL (Optional)") },
+                        placeholder = { Text("https://example.com/image.jpg") },
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(Icons.Default.Star, contentDescription = null)
+                        },
+                        singleLine = true
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Guidelines
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Community Guidelines",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "• Be respectful and helpful\n• Share accurate information\n• No spam or promotional content",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddCommentModal(
+    postId: Long,
+    onDismiss: () -> Unit,
+    onAddComment: (PostComment) -> Unit
+) {
+    var commentText by remember { mutableStateOf("") }
+    var showError by remember { mutableStateOf(false) }
+    
+    fun validateAndComment() {
+        when {
+            commentText.isBlank() -> {
+                showError = true
+            }
+            commentText.length < 3 -> {
+                showError = true
+            }
+            else -> {
+                val comment = PostComment(
+                    postId = postId,
+                    content = commentText
+                )
+                onAddComment(comment)
+                onDismiss()
+            }
+        }
+    }
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = MaterialTheme.shapes.large
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Add Comment",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                OutlinedTextField(
+                    value = commentText,
+                    onValueChange = { 
+                        commentText = it
+                        showError = false
+                    },
+                    label = { Text("Your comment") },
+                    placeholder = { Text("Share your thoughts...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    minLines = 5,
+                    maxLines = 8,
+                    isError = showError
+                )
+                
+                if (showError) {
+                    Text(
+                        text = "Comment must be at least 3 characters",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { validateAndComment() },
+                        enabled = commentText.isNotBlank()
+                    ) {
+                        Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Comment")
+                    }
+                }
+            }
+        }
+    }
+}

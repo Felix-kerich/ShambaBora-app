@@ -45,6 +45,9 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     object GroupDetail : Screen("group_detail/{groupId}", "Group Details", "group") {
         fun createRoute(groupId: Long) = "group_detail/$groupId"
     }
+    object Conversation : Screen("conversation/{userId}/{userName}", "Conversation", "chat") {
+        fun createRoute(userId: Long, userName: String) = "conversation/$userId/$userName"
+    }
     
     // Weather
     object Weather : Screen("weather", "Weather", "wb_sunny")

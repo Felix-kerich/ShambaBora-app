@@ -33,6 +33,9 @@ class CommunityViewModel @Inject constructor(
     private val _messagesState = MutableStateFlow<Resource<PageResponse<DirectMessage>>>(Resource.Loading())
     val messagesState: StateFlow<Resource<PageResponse<DirectMessage>>> = _messagesState.asStateFlow()
     
+    private val _commentsState = MutableStateFlow<Resource<PageResponse<PostComment>>>(Resource.Loading())
+    val commentsState: StateFlow<Resource<PageResponse<PostComment>>> = _commentsState.asStateFlow()
+    
     init {
         loadFeed()
         loadMyGroups()
@@ -71,6 +74,15 @@ class CommunityViewModel @Inject constructor(
     fun addComment(postId: Long, comment: PostComment) {
         viewModelScope.launch {
             repository.addComment(postId, comment)
+            loadFeed() // Refresh feed to show updated comment count
+            loadComments(postId) // Refresh comments
+        }
+    }
+    
+    fun loadComments(postId: Long, page: Int = 0, size: Int = 20) {
+        viewModelScope.launch {
+            _commentsState.value = Resource.Loading()
+            _commentsState.value = repository.getPostComments(postId, page, size)
         }
     }
     

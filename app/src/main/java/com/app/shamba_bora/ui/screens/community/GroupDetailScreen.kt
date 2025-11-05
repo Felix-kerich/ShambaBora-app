@@ -18,6 +18,7 @@ import com.app.shamba_bora.data.model.Message
 import com.app.shamba_bora.data.model.Post
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
+import com.app.shamba_bora.ui.components.CreatePostModal
 import com.app.shamba_bora.utils.PreferenceManager
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.CommunityViewModel
@@ -34,6 +35,7 @@ fun GroupDetailScreen(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var messageText by remember { mutableStateOf("") }
+    var showCreatePostModal by remember { mutableStateOf(false) }
     val currentUserId = PreferenceManager.getUserId()
     
     // Load group data
@@ -80,7 +82,7 @@ fun GroupDetailScreen(
         floatingActionButton = {
             if (selectedTab == 0) {
                 FloatingActionButton(
-                    onClick = { /* Create group post */ },
+                    onClick = { showCreatePostModal = true },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Create Post")
@@ -133,6 +135,17 @@ fun GroupDetailScreen(
                     group = group
                 )
             }
+        }
+        
+        // Create Post Modal for Group
+        if (showCreatePostModal) {
+            CreatePostModal(
+                onDismiss = { showCreatePostModal = false },
+                onCreatePost = { post ->
+                    communityViewModel.createPost(post)
+                },
+                groupId = groupId
+            )
         }
     }
 }

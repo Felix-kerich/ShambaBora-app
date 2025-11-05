@@ -20,6 +20,7 @@ import com.app.shamba_bora.data.model.Post
 import com.app.shamba_bora.data.model.PostComment
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
+import com.app.shamba_bora.ui.components.AddCommentModal
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.CommunityViewModel
 
@@ -31,7 +32,14 @@ fun PostDetailScreen(
     viewModel: CommunityViewModel = hiltViewModel()
 ) {
     val feedState by viewModel.feedState.collectAsState()
+    val commentsState by viewModel.commentsState.collectAsState()
     var commentText by remember { mutableStateOf("") }
+    var showCommentModal by remember { mutableStateOf(false) }
+    
+    // Load comments when screen opens
+    LaunchedEffect(postId) {
+        viewModel.loadComments(postId)
+    }
     
     // Find the post from feed state
     val post = when (val state = feedState) {
@@ -89,67 +97,118 @@ fun PostDetailScreen(
                     
                     // Comments Header
                     item {
-                        Text(
-                            text = "Comments (${post.commentCount ?: 0})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    
-                    // Comments List
-                    post.recentComments?.let { comments ->
-                        items(comments) { comment ->
-                            CommentCard(comment = comment)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Comments (${post.commentCount ?: 0})",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            TextButton(onClick = { showCommentModal = true }) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Comment")
+                            }
                         }
                     }
                     
-                    if (post.recentComments.isNullOrEmpty()) {
-                        item {
-                            Text(
-                                text = "No comments yet. Be the first to comment!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 16.dp)
-                            )
+                    // Comments List from API
+                    when (val state = commentsState) {
+                        is Resource.Loading -> {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+                        is Resource.Error -> {
+                            item {
+                                Text(
+                                    text = state.message ?: "Failed to load comments",
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                        is Resource.Success -> {
+                            val comments = state.data?.content ?: emptyList()
+                            if (comments.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = "No comments yet. Be the first to comment!",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = 16.dp)
+                                    )
+                                }
+                            } else {
+                                items(comments) { comment ->
+                                    CommentCard(comment = comment)
+                                }
+                            }
                         }
                     }
                 }
                 
-                // Comment Input
+                // Quick Comment Input
                 Divider()
-                Row(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = commentText,
-                        onValueChange = { commentText = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Add a comment...") },
-                        trailingIcon = {
-                            if (commentText.isNotBlank()) {
-                                IconButton(onClick = {
-                                    val comment = PostComment(
-                                        postId = post.id ?: 0L,
-                                        content = commentText
-                                    )
-                                    viewModel.addComment(post.id ?: 0L, comment)
-                                    commentText = ""
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Send,
-                                        contentDescription = "Send",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        },
-                        maxLines = 3
+                    onClick = { showCommentModal = true },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.MailOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Add a comment...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            Icons.Default.Send,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
+        }
+        
+        // Comment Modal
+        if (showCommentModal) {
+            AddCommentModal(
+                postId = post.id ?: 0L,
+                onDismiss = { showCommentModal = false },
+                onAddComment = { comment ->
+                    viewModel.addComment(post.id ?: 0L, comment)
+                }
+            )
         }
     }
 }
