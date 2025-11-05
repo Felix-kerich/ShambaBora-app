@@ -628,17 +628,3 @@ fun formatDateTime(dateTime: String): String {
         dateTime
     }
 }
-
-@Composable
-fun getActivityIcon(activityType: String?): androidx.compose.ui.graphics.vector.ImageVector {
-    return when (activityType?.lowercase()) {
-        "planting", "plowing", "seeding" -> Icons.Default.Info
-        "watering", "irrigation" -> Icons.Default.Info
-        "fertilizing", "fertilizer" -> Icons.Default.Info
-        "harvesting", "harvest" -> Icons.Default.Info
-        "weeding" -> Icons.Default.Info
-        "spraying", "pesticide" -> Icons.Default.Info
-        "pruning" -> Icons.Default.Info
-        else -> Icons.Default.Info
-    }
-}
