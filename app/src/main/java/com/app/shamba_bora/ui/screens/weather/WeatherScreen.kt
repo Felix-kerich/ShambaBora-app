@@ -235,7 +235,7 @@ fun CurrentWeatherCard(weather: Weather) {
                 )
                 
                 WeatherDetail(
-                    icon = Icons.Default.Air,
+                    icon = Icons.Default.Cloud,
                     label = "Wind",
                     value = "${weather.windSpeed ?: 0} m/s"
                 )
@@ -351,13 +351,13 @@ fun ForecastDayCard(forecast: DailyForecast) {
 
 fun getWeatherIcon(description: String?): androidx.compose.ui.graphics.vector.ImageVector {
     return when (description?.lowercase()) {
-        "clear", "clear sky" -> Icons.Default.WbSunny
+        "clear", "clear sky" -> Icons.Default.Star // Sunny
         "clouds", "few clouds", "scattered clouds", "broken clouds", "overcast clouds" -> Icons.Default.Cloud
         "rain", "light rain", "moderate rain", "heavy rain", "shower rain" -> Icons.Default.WaterDrop
-        "thunderstorm" -> Icons.Default.Thunderstorm
-        "snow" -> Icons.Default.AcUnit
+        "thunderstorm" -> Icons.Default.Warning // Thunderstorm
+        "snow" -> Icons.Default.Star // Snow
         "mist", "fog", "haze" -> Icons.Default.Cloud
-        else -> Icons.Default.WbCloudy
+        else -> Icons.Default.Cloud
     }
 }
 

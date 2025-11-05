@@ -304,7 +304,7 @@ fun SellerOrderCard(
 
 fun getStatusIcon(status: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (status.uppercase()) {
-        "PENDING" -> Icons.Default.HourglassEmpty
+        "PENDING" -> Icons.Default.Schedule
         "CONFIRMED" -> Icons.Default.CheckCircle
         "SHIPPED" -> Icons.Default.LocalShipping
         "DELIVERED" -> Icons.Default.Done

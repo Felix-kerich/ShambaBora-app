@@ -83,7 +83,7 @@ fun SettingsScreen(
             
             item {
                 SettingsSwitchItem(
-                    icon = Icons.Default.DarkMode,
+                    icon = Icons.Default.Settings,
                     title = "Dark Mode",
                     subtitle = "Use dark theme",
                     checked = darkModeEnabled,
@@ -128,7 +128,7 @@ fun SettingsScreen(
             
             item {
                 SettingsItem(
-                    icon = Icons.Default.PrivacyTip,
+                    icon = Icons.Default.Lock,
                     title = "Privacy Policy",
                     subtitle = "View our privacy policy",
                     onClick = { /* Open privacy policy */ }
@@ -179,9 +179,9 @@ fun SettingsScreen(
             onDismissRequest = { showLogoutDialog = false },
             icon = {
                 Icon(
-                    imageVector = Icons.Default.Logout,
+                    imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             title = {
@@ -262,7 +262,7 @@ fun SettingsItem(
         }
         
         Icon(
-            imageVector = Icons.Default.ChevronRight,
+            imageVector = Icons.Default.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )

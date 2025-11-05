@@ -108,7 +108,7 @@ fun CreatePostScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = Icons.Default.Warning,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -208,7 +208,7 @@ fun CreatePostScreen(
                 placeholder = { Text("https://example.com/image.jpg") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
-                    Icon(Icons.Default.Star, contentDescription = null)
+                    Icon(Icons.Default.Image, contentDescription = null)
                 },
                 singleLine = true
             )
