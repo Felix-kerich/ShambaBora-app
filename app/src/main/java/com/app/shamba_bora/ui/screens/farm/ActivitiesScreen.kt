@@ -242,7 +242,7 @@ fun ActivityCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.CalendarToday,
+                        imageVector = Icons.Default.DateRange,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -277,7 +277,7 @@ fun ActivityCard(
                     if (activity.areaSize != null && activity.areaSize > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Landscape,
+                                imageVector = Icons.Default.Place,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -293,7 +293,7 @@ fun ActivityCard(
                     if (activity.cost != null && activity.cost > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Payments,
+                                imageVector = Icons.Default.AttachMoney,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.error
@@ -393,7 +393,7 @@ fun AddActivityDialog(
                     readOnly = true,
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = "Select Date")
+                            Icon(Icons.Default.DateRange, contentDescription = "Select Date")
                         }
                     },
                     singleLine = true
@@ -553,7 +553,7 @@ fun AddReminderDialog(
                     readOnly = true,
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = "Select Date")
+                            Icon(Icons.Default.DateRange, contentDescription = "Select Date")
                         }
                     },
                     singleLine = true

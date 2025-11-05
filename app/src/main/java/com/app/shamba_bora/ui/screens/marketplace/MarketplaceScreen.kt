@@ -220,7 +220,7 @@ fun ProductCard(
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Build,
+                            imageVector = Icons.Default.ShoppingCart,
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxSize()
