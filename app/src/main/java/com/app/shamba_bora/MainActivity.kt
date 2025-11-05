@@ -22,7 +22,9 @@ import com.app.shamba_bora.navigation.Screen
 import com.app.shamba_bora.ui.components.DrawerMenu
 import com.app.shamba_bora.ui.theme.Shamba_BoraTheme
 import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
