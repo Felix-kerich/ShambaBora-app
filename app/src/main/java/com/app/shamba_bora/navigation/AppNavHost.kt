@@ -89,7 +89,10 @@ fun AppNavHost(
             ProductDetailScreen(
                 productId = productId,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToPlaceOrder = { navController.popBackStack() }
+                onNavigateToCheckout = { product, quantity ->
+                    // For now, just go back - you can add checkout screen later
+                    navController.popBackStack()
+                }
             )
         }
         
