@@ -229,13 +229,13 @@ fun CurrentWeatherCard(weather: Weather) {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 WeatherDetail(
-                    icon = Icons.Default.WaterDrop,
+                    icon = Icons.Default.Info,
                     label = "Humidity",
                     value = "${weather.humidity ?: 0}%"
                 )
                 
                 WeatherDetail(
-                    icon = Icons.Default.Cloud,
+                    icon = Icons.Default.Info,
                     label = "Wind",
                     value = "${weather.windSpeed ?: 0} m/s"
                 )
@@ -332,7 +332,7 @@ fun ForecastDayCard(forecast: DailyForecast) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.WaterDrop,
+                        imageVector = Icons.Default.Info,
                         contentDescription = null,
                         modifier = Modifier.size(12.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -352,12 +352,12 @@ fun ForecastDayCard(forecast: DailyForecast) {
 fun getWeatherIcon(description: String?): androidx.compose.ui.graphics.vector.ImageVector {
     return when (description?.lowercase()) {
         "clear", "clear sky" -> Icons.Default.Star // Sunny
-        "clouds", "few clouds", "scattered clouds", "broken clouds", "overcast clouds" -> Icons.Default.Cloud
-        "rain", "light rain", "moderate rain", "heavy rain", "shower rain" -> Icons.Default.WaterDrop
+        "clouds", "few clouds", "scattered clouds", "broken clouds", "overcast clouds" -> Icons.Default.Info
+        "rain", "light rain", "moderate rain", "heavy rain", "shower rain" -> Icons.Default.Info
         "thunderstorm" -> Icons.Default.Warning // Thunderstorm
         "snow" -> Icons.Default.Star // Snow
-        "mist", "fog", "haze" -> Icons.Default.Cloud
-        else -> Icons.Default.Cloud
+        "mist", "fog", "haze" -> Icons.Default.Info
+        else -> Icons.Default.Info
     }
 }
 

@@ -97,7 +97,7 @@ fun SettingsScreen(
             
             item {
                 SettingsItem(
-                    icon = Icons.Default.Language,
+                    icon = Icons.Default.Info,
                     title = "Language",
                     subtitle = "English",
                     onClick = { /* Navigate to language selection */ }
@@ -141,7 +141,7 @@ fun SettingsScreen(
             
             item {
                 SettingsItem(
-                    icon = Icons.Default.Description,
+                    icon = Icons.Default.Info,
                     title = "Terms of Service",
                     subtitle = "View terms and conditions",
                     onClick = { /* Open terms */ }
@@ -159,7 +159,7 @@ fun SettingsScreen(
             
             item {
                 SettingsItem(
-                    icon = Icons.Default.Logout,
+                    icon = Icons.Default.Lock,
                     title = "Logout",
                     subtitle = "Sign out of your account",
                     onClick = { showLogoutDialog = true },

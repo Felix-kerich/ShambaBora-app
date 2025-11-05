@@ -84,7 +84,7 @@ fun SellerOrdersScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Inventory,
+                                imageVector = Icons.Default.ShoppingCart,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -167,7 +167,7 @@ fun SellerOrderCard(
                     
                     IconButton(onClick = { expanded = !expanded }) {
                         Icon(
-                            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            imageVector = if (expanded) Icons.Default.Info else Icons.Default.Info,
                             contentDescription = if (expanded) "Collapse" else "Expand"
                         )
                     }
@@ -244,7 +244,7 @@ fun SellerOrderCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Schedule,
+                            imageVector = Icons.Default.Info,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -266,7 +266,7 @@ fun SellerOrderCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Update,
+                            imageVector = Icons.Default.Edit,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
@@ -304,11 +304,11 @@ fun SellerOrderCard(
 
 fun getStatusIcon(status: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (status.uppercase()) {
-        "PENDING" -> Icons.Default.Schedule
+        "PENDING" -> Icons.Default.DateRange
         "CONFIRMED" -> Icons.Default.CheckCircle
-        "SHIPPED" -> Icons.Default.LocalShipping
+        "SHIPPED" -> Icons.Default.Done
         "DELIVERED" -> Icons.Default.Done
-        "CANCELLED" -> Icons.Default.Cancel
+        "CANCELLED" -> Icons.Default.Close
         else -> Icons.Default.Info
     }
 }
