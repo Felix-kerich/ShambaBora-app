@@ -52,12 +52,12 @@ fun AddProductScreen(
         if (productState is com.app.shamba_bora.utils.Resource.Success) {
             val product = (productState as com.app.shamba_bora.utils.Resource.Success).data
             product?.let {
-                name = it.name
-                description = it.description
-                category = it.category
-                price = it.price.toString()
-                quantity = it.quantity.toString()
-                unit = it.unit
+                name = it.name ?: ""
+                description = it.description ?: ""
+                category = it.category ?: "Seeds"
+                price = it.price?.toString() ?: ""
+                quantity = it.quantity?.toString() ?: ""
+                unit = it.unit ?: "kg"
                 imageUrl = it.imageUrl ?: ""
                 location = it.location ?: ""
             }

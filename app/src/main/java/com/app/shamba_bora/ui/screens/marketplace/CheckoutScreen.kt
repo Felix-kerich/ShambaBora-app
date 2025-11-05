@@ -34,7 +34,7 @@ fun CheckoutScreen(
     var errorMessage by remember { mutableStateOf("") }
     var showSuccessDialog by remember { mutableStateOf(false) }
     
-    val totalAmount = product.price * quantity
+    val totalAmount = (product.price ?: 0.0) * quantity
     
     Scaffold(
         topBar = {
@@ -86,7 +86,7 @@ fun CheckoutScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = product.name,
+                            text = product.name ?: "Unknown Product",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -105,7 +105,7 @@ fun CheckoutScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "$quantity ${product.unit}",
+                            text = "$quantity ${product.unit ?: "units"}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -124,7 +124,7 @@ fun CheckoutScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "KES ${String.format("%.2f", product.price)}",
+                            text = "KES ${String.format("%.2f", product.price ?: 0.0)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
