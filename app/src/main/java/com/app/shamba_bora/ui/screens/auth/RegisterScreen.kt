@@ -14,15 +14,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.app.shamba_bora.utils.Resource
+import com.app.shamba_bora.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -31,7 +31,23 @@ fun RegisterScreen(
     var fullName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    val registerState by viewModel.registerState.collectAsState()
+    
+    // Handle registration state changes
+    LaunchedEffect(registerState) {
+        when (registerState) {
+            is Resource.Success -> {
+                viewModel.clearRegisterState()
+                onRegisterSuccess()
+            }
+            is Resource.Error -> {
+                errorMessage = (registerState as Resource.Error).message
+            }
+            else -> {}
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -57,6 +73,24 @@ fun RegisterScreen(
         )
         
         Spacer(modifier = Modifier.height(32.dp))
+        
+        // Error message
+        if (errorMessage != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    text = errorMessage ?: "",
+                    modifier = Modifier.padding(12.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         
         // Full Name
         OutlinedTextField(
@@ -120,7 +154,7 @@ fun RegisterScreen(
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
-                        if (passwordVisible) Icons.Default.Build else Icons.Default.Build,
+                        if (passwordVisible) Icons.Default.Lock else Icons.Default.Lock,
                         contentDescription = if (passwordVisible) "Hide password" else "Show password"
                     )
                 }
@@ -149,25 +183,31 @@ fun RegisterScreen(
         // Register Button
         Button(
             onClick = {
-                isLoading = true
-                // Simulate registration
-                CoroutineScope(Dispatchers.Main).launch {
-                    delay(1000)
-                    isLoading = false
-                    onRegisterSuccess()
+                errorMessage = null
+                if (password != confirmPassword) {
+                    errorMessage = "Passwords do not match"
+                } else {
+                    viewModel.register(
+                        username = username,
+                        email = email,
+                        password = password,
+                        fullName = fullName,
+                        phoneNumber = phoneNumber.ifBlank { null }
+                    )
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading && 
+            enabled = registerState !is Resource.Loading && 
                 username.isNotBlank() && 
                 email.isNotBlank() && 
                 password.isNotBlank() && 
+                fullName.isNotBlank() &&
                 password == confirmPassword
         ) {
-            if (isLoading) {
+            if (registerState is Resource.Loading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
                     color = MaterialTheme.colorScheme.onPrimary

@@ -8,24 +8,41 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.app.shamba_bora.utils.Resource
+import com.app.shamba_bora.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    val loginState by viewModel.loginState.collectAsState()
+    
+    // Handle login state changes
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is Resource.Success -> {
+                viewModel.clearLoginState()
+                onLoginSuccess()
+            }
+            is Resource.Error -> {
+                errorMessage = (loginState as Resource.Error).message
+            }
+            else -> {}
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -64,7 +81,27 @@ fun LoginScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        // Error message
+        if (errorMessage != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    text = errorMessage ?: "",
+                    modifier = Modifier.padding(12.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Username Field
         OutlinedTextField(
@@ -89,7 +126,7 @@ fun LoginScreen(
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
-                        if (passwordVisible) Icons.Default.Build else Icons.Default.Build,
+                        if (passwordVisible) Icons.Default.Lock else Icons.Default.Lock,
                         contentDescription = if (passwordVisible) "Hide password" else "Show password"
                     )
                 }
@@ -104,21 +141,16 @@ fun LoginScreen(
         // Login Button
         Button(
             onClick = {
-                isLoading = true
-                // Simulate login
-                CoroutineScope(Dispatchers.Main).launch {
-                    delay(1000)
-                    isLoading = false
-                    onLoginSuccess()
-                }
+                errorMessage = null
+                viewModel.login(username, password)
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading && username.isNotBlank() && password.isNotBlank()
+            enabled = loginState !is Resource.Loading && username.isNotBlank() && password.isNotBlank()
         ) {
-            if (isLoading) {
+            if (loginState is Resource.Loading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
                     color = MaterialTheme.colorScheme.onPrimary

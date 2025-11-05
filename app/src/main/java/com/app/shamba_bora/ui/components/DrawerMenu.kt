@@ -1,5 +1,6 @@
 package com.app.shamba_bora.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -7,9 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.app.shamba_bora.navigation.Screen
+import com.app.shamba_bora.utils.PreferenceManager
 
 @Composable
 fun DrawerMenu(
@@ -17,121 +21,164 @@ fun DrawerMenu(
     onNavigate: (String) -> Unit,
     onClose: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    ModalDrawerSheet(
+        modifier = Modifier.fillMaxHeight()
     ) {
-        // Header
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
         ) {
-            Icon(
-                imageVector = Icons.Default.DateRange,
-                contentDescription = "ShambaBora",
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
+            // Header with gradient background
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    )
+                    .padding(24.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = "ShambaBora",
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "ShambaBora",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = PreferenceManager.getUsername().ifEmpty { "Maize Farmers" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Menu Items
+            DrawerMenuItem(
+                icon = Icons.Default.Person,
+                title = "Profile",
+                route = Screen.Profile.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.Profile.route)
+                    onClose()
+                }
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "ShambaBora",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Maize Farmers",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        
+            
+            DrawerMenuItem(
+                icon = Icons.Default.Build,
+                title = "Farmer Profile",
+                route = Screen.FarmerProfile.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.FarmerProfile.route)
+                    onClose()
+                }
+            )
+            
+            DrawerMenuItem(
+                icon = Icons.Default.DateRange,
+                title = "Weather",
+                route = Screen.Weather.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.Weather.route)
+                    onClose()
+                }
+            )
+            
+            DrawerMenuItem(
+                icon = Icons.Default.ShoppingCart,
+                title = "My Products",
+                route = Screen.MyProducts.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.MyProducts.route)
+                    onClose()
+                }
+            )
+            
+            DrawerMenuItem(
+                icon = Icons.Default.ShoppingCart,
+                title = "Orders",
+                route = Screen.Orders.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.Orders.route)
+                    onClose()
+                }
+            )
+            
+            DrawerMenuItem(
+                icon = Icons.Default.Person,
+                title = "Groups",
+                route = Screen.Groups.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.Groups.route)
+                    onClose()
+                }
+            )
+            
+            DrawerMenuItem(
+                icon = Icons.Default.Email,
+                title = "Messages",
+                route = Screen.Messages.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.Messages.route)
+                    onClose()
+                }
+            )
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            
+            DrawerMenuItem(
+                icon = Icons.Default.Settings,
+                title = "Settings",
+                route = Screen.Settings.route,
+                currentRoute = currentRoute,
+                onClick = { 
+                    onNavigate(Screen.Settings.route)
+                    onClose()
+                }
+            )
+            
+            DrawerMenuItem(
+                icon = Icons.Default.Lock,
+                title = "Logout",
+                route = "",
+                currentRoute = null,
+                onClick = { 
+                    // Clear user data and navigate to login
+                    PreferenceManager.clear()
+                    onNavigate(Screen.Login.route)
+                    onClose()
+                }
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
-        
-        // Menu Items
-        DrawerMenuItem(
-            icon = Icons.Default.Person,
-            title = "Profile",
-            route = Screen.Profile.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.Profile.route) }
-        )
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Build,
-            title = "Farmer Profile",
-            route = Screen.FarmerProfile.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.FarmerProfile.route) }
-        )
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Build,
-            title = "Weather",
-            route = Screen.Weather.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.Weather.route) }
-        )
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Build,
-            title = "My Products",
-            route = Screen.MyProducts.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.MyProducts.route) }
-        )
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Build,
-            title = "Orders",
-            route = Screen.Orders.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.Orders.route) }
-        )
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Build,
-            title = "Groups",
-            route = Screen.Groups.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.Groups.route) }
-        )
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Build,
-            title = "Messages",
-            route = Screen.Messages.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.Messages.route) }
-        )
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Settings,
-            title = "Settings",
-            route = Screen.Settings.route,
-            currentRoute = currentRoute,
-            onClick = { onNavigate(Screen.Settings.route) }
-        )
-        
-        DrawerMenuItem(
-            icon = Icons.Default.Lock,
-            title = "Logout",
-            route = "",
-            currentRoute = null,
-            onClick = { 
-                // Handle logout
-                onNavigate(Screen.Login.route)
-            }
-        )
     }
 }
 
@@ -145,10 +192,16 @@ fun DrawerMenuItem(
 ) {
     NavigationDrawerItem(
         icon = { Icon(icon, contentDescription = title) },
-        label = { Text(title) },
+        label = { Text(title, style = MaterialTheme.typography.bodyLarge) },
         selected = currentRoute == route,
         onClick = onClick,
-        modifier = Modifier.padding(vertical = 4.dp)
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            unselectedContainerColor = Color.Transparent
+        )
     )
 }
 

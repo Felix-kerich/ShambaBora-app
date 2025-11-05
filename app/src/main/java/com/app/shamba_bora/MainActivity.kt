@@ -21,6 +21,7 @@ import com.app.shamba_bora.navigation.AppNavHost
 import com.app.shamba_bora.navigation.Screen
 import com.app.shamba_bora.ui.components.DrawerMenu
 import com.app.shamba_bora.ui.theme.Shamba_BoraTheme
+import com.app.shamba_bora.utils.PreferenceManager
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -40,6 +41,10 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
+    // Check if user is logged in to determine start destination
+    val isLoggedIn = PreferenceManager.isLoggedIn()
+    val startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
+    
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -47,8 +52,9 @@ fun MainScreen() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     var showBottomNav by remember { mutableStateOf(true) }
+    var showTopBar by remember { mutableStateOf(true) }
     
-    // Show bottom nav only on main screens
+    // Show bottom nav and top bar only on main screens
     val mainScreens = listOf(
         Screen.Home.route,
         Screen.Marketplace.route,
@@ -57,8 +63,14 @@ fun MainScreen() {
         Screen.Chatbot.route
     )
     
+    val authScreens = listOf(
+        Screen.Login.route,
+        Screen.Register.route
+    )
+    
     LaunchedEffect(currentRoute) {
         showBottomNav = mainScreens.contains(currentRoute)
+        showTopBar = !authScreens.contains(currentRoute)
     }
     
     ModalNavigationDrawer(
@@ -89,7 +101,8 @@ fun MainScreen() {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                TopAppBar(
+                if (showTopBar) {
+                    TopAppBar(
                     title = { 
                         Text(
                             text = when (currentRoute) {
@@ -117,6 +130,7 @@ fun MainScreen() {
                         navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 )
+                }
             },
             bottomBar = {
                 if (showBottomNav) {
@@ -151,7 +165,8 @@ fun MainScreen() {
         ) { innerPadding ->
             AppNavHost(
                 navController = navController,
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                startDestination = startDestination
             )
         }
     }
