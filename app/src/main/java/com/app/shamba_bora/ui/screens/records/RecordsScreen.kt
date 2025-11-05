@@ -17,6 +17,160 @@ import com.app.shamba_bora.viewmodel.FarmActivityViewModel
 import com.app.shamba_bora.viewmodel.FarmExpenseViewModel
 import com.app.shamba_bora.viewmodel.YieldRecordViewModel
 
+data class RecordCategory(
+    val title: String,
+    val description: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val color: androidx.compose.ui.graphics.Color,
+    val count: Int,
+    val onClick: () -> Unit
+)
+
+@Composable
+fun RecordCategoryCard(
+    category: RecordCategory
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = category.onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = MaterialTheme.shapes.large,
+                color = category.color.copy(alpha = 0.1f)
+            ) {
+                Icon(
+                    imageVector = category.icon,
+                    contentDescription = category.title,
+                    modifier = Modifier.padding(16.dp),
+                    tint = category.color
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = category.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = category.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${category.count} records",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = category.color,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "Navigate",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun RecordCategoriesSection(
+    onNavigateToActivities: () -> Unit,
+    onNavigateToExpenses: () -> Unit,
+    onNavigateToYields: () -> Unit,
+    activitiesCount: Int,
+    expensesCount: Int,
+    yieldsCount: Int
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    val categories = listOf(
+        RecordCategory(
+            "Farm Activities",
+            "Track planting, harvesting, and other farm operations",
+            Icons.Default.Info,
+            colorScheme.primary,
+            activitiesCount,
+            onNavigateToActivities
+        ),
+        RecordCategory(
+            "Expenses",
+            "Record and manage your farming expenses",
+            Icons.Default.Info,
+            colorScheme.error,
+            expensesCount,
+            onNavigateToExpenses
+        ),
+        RecordCategory(
+            "Yields",
+            "Log your harvest and yield information",
+            Icons.Default.Info,
+            colorScheme.tertiary,
+            yieldsCount,
+            onNavigateToYields
+        )
+    )
+    
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        categories.forEach { category ->
+            RecordCategoryCard(category = category)
+        }
+    }
+}
+
+@Composable
+fun StatCard(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    containerColor: androidx.compose.ui.graphics.Color,
+    contentColor: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.height(120.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp)
+            )
+            Column {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = contentColor.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordsScreen(
@@ -128,7 +282,7 @@ fun RecordsScreen(
                 StatCard(
                     title = "Total Activities",
                     value = "$activitiesCount",
-                    icon = Icons.Default.Agriculture,
+                    icon = Icons.Default.Info,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.weight(1f)
@@ -136,7 +290,7 @@ fun RecordsScreen(
                 StatCard(
                     title = "Total Expenses",
                     value = "KES ${String.format("%.0f", totalExpenses)}",
-                    icon = Icons.Default.Payments,
+                    icon = Icons.Default.Check,
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.weight(1f)
@@ -152,7 +306,7 @@ fun RecordsScreen(
                 StatCard(
                     title = "Total Records",
                     value = "$yieldsCount",
-                    icon = Icons.Default.Inventory,
+                    icon = Icons.Default.Info,
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.weight(1f)
@@ -160,7 +314,7 @@ fun RecordsScreen(
                 StatCard(
                     title = "Total Revenue",
                     value = "KES ${String.format("%.0f", totalRevenue)}",
-                    icon = Icons.Default.TrendingUp,
+                    icon = Icons.Default.Info,
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.weight(1f)
@@ -170,158 +324,6 @@ fun RecordsScreen(
     }
 }
 
-@Composable
-fun RecordCategoryCard(
-    category: RecordCategory
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = category.onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(64.dp),
-                shape = MaterialTheme.shapes.large,
-                color = category.color.copy(alpha = 0.1f)
-            ) {
-                Icon(
-                    imageVector = category.icon,
-                    contentDescription = category.title,
-                    modifier = Modifier.padding(16.dp),
-                    tint = category.color
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = category.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = category.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${category.count} records",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = category.color,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "Navigate",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun StatCard(
-    title: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    containerColor: androidx.compose.ui.graphics.Color,
-    contentColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.height(120.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = contentColor,
-                modifier = Modifier.size(24.dp)
-            )
-            Column {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = contentColor.copy(alpha = 0.7f)
-                )
-            }
-        }
-    }
-}
-
-data class RecordCategory(
-    val title: String,
-    val description: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val color: androidx.compose.ui.graphics.Color,
-    val count: Int,
-    val onClick: () -> Unit
-)
-
-@Composable
-private fun RecordCategoriesSection(
-    onNavigateToActivities: () -> Unit,
-    onNavigateToExpenses: () -> Unit,
-    onNavigateToYields: () -> Unit,
-    activitiesCount: Int,
-    expensesCount: Int,
-    yieldsCount: Int
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    
-    val categories = listOf(
-        RecordCategory(
-            "Farm Activities",
-            "Track planting, harvesting, and other farm operations",
-            Icons.Default.Agriculture,
-            colorScheme.primary,
-            activitiesCount,
-            onNavigateToActivities
-        ),
-        RecordCategory(
-            "Expenses",
-            "Record and manage your farming expenses",
-            Icons.Default.Payments,
-            colorScheme.error,
-            expensesCount,
-            onNavigateToExpenses
-        ),
-        RecordCategory(
-            "Yields",
-            "Log your harvest and yield information",
-            Icons.Default.Inventory,
-            colorScheme.tertiary,
-            yieldsCount,
-            onNavigateToYields
-        )
-    )
-    
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        categories.forEach { category ->
-            RecordCategoryCard(category = category)
-        }
-    }
 }
 
 

@@ -108,7 +108,7 @@ fun CreatePostScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Error,
+                            imageVector = Icons.Default.Star,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -138,13 +138,13 @@ fun CreatePostScreen(
                     leadingIcon = {
                         Icon(
                             imageVector = when (selectedPostType) {
-                                "QUESTION" -> Icons.Default.Help
-                                "ADVICE" -> Icons.Default.Lightbulb
+                                "QUESTION" -> Icons.Default.Build
+                                "ADVICE" -> Icons.Default.Build
                                 "SHARE_EXPERIENCE" -> Icons.Default.Share
-                                "MARKET_UPDATE" -> Icons.Default.TrendingUp
-                                "WEATHER_ALERT" -> Icons.Default.Cloud
-                                "ANNOUNCEMENT" -> Icons.Default.Campaign
-                                else -> Icons.Default.Article
+                                "MARKET_UPDATE" -> Icons.Default.Build
+                                "WEATHER_ALERT" -> Icons.Default.Build
+                                "ANNOUNCEMENT" -> Icons.Default.MailOutline
+                                else -> Icons.Default.MailOutline
                             },
                             contentDescription = null
                         )
@@ -164,13 +164,13 @@ fun CreatePostScreen(
                             leadingIcon = {
                                 Icon(
                                     imageVector = when (value) {
-                                        "QUESTION" -> Icons.Default.Help
-                                        "ADVICE" -> Icons.Default.Lightbulb
+                                        "QUESTION" -> Icons.Default.Build
+                                        "ADVICE" -> Icons.Default.Build
                                         "SHARE_EXPERIENCE" -> Icons.Default.Share
-                                        "MARKET_UPDATE" -> Icons.Default.TrendingUp
-                                        "WEATHER_ALERT" -> Icons.Default.Cloud
-                                        "ANNOUNCEMENT" -> Icons.Default.Campaign
-                                        else -> Icons.Default.Article
+                                        "MARKET_UPDATE" -> Icons.Default.Build
+                                        "WEATHER_ALERT" -> Icons.Default.Build
+                                        "ANNOUNCEMENT" -> Icons.Default.Build
+                                        else -> Icons.Default.Build
                                     },
                                     contentDescription = null
                                 )
@@ -208,7 +208,7 @@ fun CreatePostScreen(
                 placeholder = { Text("https://example.com/image.jpg") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
-                    Icon(Icons.Default.Image, contentDescription = null)
+                    Icon(Icons.Default.Star, contentDescription = null)
                 },
                 singleLine = true
             )

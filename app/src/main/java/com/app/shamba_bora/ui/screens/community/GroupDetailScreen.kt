@@ -99,19 +99,19 @@ fun GroupDetailScreen(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     text = { Text("Posts") },
-                    icon = { Icon(Icons.Default.Article, contentDescription = null) }
+                    icon = { Icon(Icons.Default.Build, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     text = { Text("Chat") },
-                    icon = { Icon(Icons.Default.Message, contentDescription = null) }
+                    icon = { Icon(Icons.Default.Build, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     text = { Text("Members") },
-                    icon = { Icon(Icons.Default.People, contentDescription = null) }
+                    icon = { Icon(Icons.Default.Person, contentDescription = null) }
                 )
             }
             
@@ -209,7 +209,7 @@ fun GroupPostsTab(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Article,
+                                    imageVector = Icons.Default.MailOutline,
                                     contentDescription = null,
                                     modifier = Modifier.size(64.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -291,7 +291,7 @@ fun GroupChatTab(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Message,
+                                imageVector = Icons.Default.Email,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -482,7 +482,7 @@ fun GroupPostCard(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.Comment,
+                        Icons.Default.MailOutline,
                         contentDescription = "Comments",
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

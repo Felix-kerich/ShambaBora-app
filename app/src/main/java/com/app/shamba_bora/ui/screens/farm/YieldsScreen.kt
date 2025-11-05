@@ -158,7 +158,7 @@ fun YieldsScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Inventory,
+                                        imageVector = Icons.Default.Info,
                                         contentDescription = null,
                                         modifier = Modifier.size(64.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -220,7 +220,7 @@ fun YieldCard(yield: YieldRecord) {
                         color = MaterialTheme.colorScheme.tertiaryContainer
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Inventory,
+                            imageVector = Icons.Default.Info,
                             contentDescription = null,
                             modifier = Modifier.padding(12.dp),
                             tint = MaterialTheme.colorScheme.onTertiaryContainer
@@ -266,7 +266,7 @@ fun YieldCard(yield: YieldRecord) {
                     if ((yield.areaHarvested ?: 0.0) > 0.0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Landscape,
+                                imageVector = Icons.Default.Info,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -282,7 +282,7 @@ fun YieldCard(yield: YieldRecord) {
                     if (yield.marketPrice != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.AttachMoney,
+                                imageVector = Icons.Default.Info,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.tertiary

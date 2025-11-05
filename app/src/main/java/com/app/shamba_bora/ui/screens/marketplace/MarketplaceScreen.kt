@@ -78,8 +78,8 @@ fun MarketplaceScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
-        // Search Bar
-        OutlinedTextField(
+            // Search Bar
+            OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
@@ -156,6 +156,7 @@ fun MarketplaceScreen(
         }
     }
 }
+}
 
 @Composable
 fun CategoryChip(
@@ -176,6 +177,20 @@ fun ProductCard(
     product: Product,
     onClick: () -> Unit
 ) {
+    val defaultProduct = Product(
+        id = 0,
+        name = "Unknown Product",
+        description = "",
+        price = 0.0,
+        unit = "unit",
+        available = false,
+        sellerId = 0,
+        category = "General",
+        quantity = 0
+    )
+    
+    val safeProduct = product ?: defaultProduct
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -192,10 +207,10 @@ fun ProductCard(
                     .height(140.dp)
                     .clip(MaterialTheme.shapes.medium)
             ) {
-                if (!product.imageUrl.isNullOrEmpty()) {
+                if (!safeProduct.imageUrl.isNullOrEmpty()) {
                     AsyncImage(
-                        model = product.imageUrl,
-                        contentDescription = product.name,
+                        model = safeProduct.imageUrl,
+                        contentDescription = safeProduct.name ?: "Product image",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -214,7 +229,7 @@ fun ProductCard(
                         )
                     }
                 }
-                if (product.available) {
+                if (safeProduct.available) {
                     Surface(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -239,26 +254,26 @@ fun ProductCard(
                     .padding(12.dp)
             ) {
                 Text(
-                    text = product.name,
+                    text = safeProduct.name ?: "Unknown Product",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = product.category,
+                    text = safeProduct.category ?: "General",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "KES ${String.format("%.2f", product.price)}",
+                    text = "KES ${String.format("%.2f", safeProduct.price ?: 0.0)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "${product.quantity} ${product.unit}",
+                    text = "${safeProduct.quantity ?: 0} ${safeProduct.unit ?: "unit"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

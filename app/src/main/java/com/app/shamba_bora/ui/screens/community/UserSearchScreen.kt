@@ -95,7 +95,7 @@ fun UserSearchScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.PersonSearch,
+                            imageVector = Icons.Default.Search,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -122,7 +122,7 @@ fun UserSearchScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.SearchOff,
+                            imageVector = Icons.Default.Search,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -202,7 +202,7 @@ fun UserSearchCard(
                     if (user.isVerified) {
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
-                            imageVector = Icons.Default.Verified,
+                            imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Verified",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -218,7 +218,7 @@ fun UserSearchCard(
             
             // Message Icon
             Icon(
-                imageVector = Icons.Default.Message,
+                imageVector = Icons.Default.MailOutline,
                 contentDescription = "Message",
                 tint = MaterialTheme.colorScheme.primary
             )

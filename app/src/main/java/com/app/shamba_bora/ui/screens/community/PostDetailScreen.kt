@@ -270,7 +270,7 @@ fun PostContentCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Comment,
+                        Icons.Default.MailOutline,
                         contentDescription = "Comments",
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

@@ -45,7 +45,7 @@ fun CollaborationScreen(
                 actions = {
                     if (selectedTab == 2) {
                         IconButton(onClick = onNavigateToUserSearch) {
-                            Icon(Icons.Default.PersonAdd, contentDescription = "Search Users")
+                            Icon(Icons.Default.AddCircle, contentDescription = "Search Users")
                         }
                     }
                 }
@@ -79,13 +79,13 @@ fun CollaborationScreen(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     text = { Text("Groups") },
-                    icon = { Icon(Icons.Default.Groups, contentDescription = null) }
+                    icon = { Icon(Icons.Default.Info, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     text = { Text("Messages") },
-                    icon = { Icon(Icons.Default.Message, contentDescription = null) }
+                    icon = { Icon(Icons.Default.MailOutline, contentDescription = null) }
                 )
             }
         
@@ -162,7 +162,7 @@ fun FeedScreen(
                         modifier = Modifier.weight(1f)
                     )
                     Icon(
-                        imageVector = Icons.Default.Image,
+                        imageVector = Icons.Default.Info,
                         contentDescription = "Add Image",
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -315,7 +315,7 @@ fun MessagesScreen(
                 )
                 TextButton(onClick = onNavigateToUserSearch) {
                     Icon(
-                        imageVector = Icons.Default.PersonAdd,
+                        imageVector = Icons.Default.AddCircle,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
@@ -459,7 +459,7 @@ fun PostCard(
                     )
                 }
                 TextButton(onClick = {}) {
-                    Icon(Icons.Default.Comment, contentDescription = "Comment", modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Email, contentDescription = "Comment", modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("${post.commentCount ?: 0}")
                 }
@@ -492,7 +492,7 @@ fun GroupCard(
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.Groups,
+                    imageVector = Icons.Default.Person,
                     contentDescription = null,
                     modifier = Modifier.padding(16.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer

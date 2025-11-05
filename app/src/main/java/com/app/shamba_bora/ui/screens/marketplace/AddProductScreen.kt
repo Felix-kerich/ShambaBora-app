@@ -93,7 +93,8 @@ fun AddProductScreen(
                     quantity = quantity.toInt(),
                     unit = unit,
                     imageUrl = imageUrl.ifBlank { null },
-                    location = location.ifBlank { null }
+                    location = location.ifBlank { null },
+                    sellerId = viewModel.getCurrentUserId()
                 )
                 
                 if (productId != null) {

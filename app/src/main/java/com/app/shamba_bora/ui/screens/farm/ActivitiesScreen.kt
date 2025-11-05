@@ -88,7 +88,7 @@ fun ActivitiesScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Agriculture,
+                                    imageVector = Icons.Default.Info,
                                     contentDescription = null,
                                     modifier = Modifier.size(48.dp),
                                     tint = MaterialTheme.colorScheme.onSecondaryContainer
@@ -123,7 +123,7 @@ fun ActivitiesScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Agriculture,
+                                        imageVector = Icons.Default.Info,
                                         contentDescription = null,
                                         modifier = Modifier.size(64.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -231,7 +231,7 @@ fun ActivityCard(activity: FarmActivity) {
                     if (activity.areaSize != null && activity.areaSize > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Landscape,
+                                imageVector = Icons.Default.Info,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -247,7 +247,7 @@ fun ActivityCard(activity: FarmActivity) {
                     if (activity.cost != null && activity.cost > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Payments,
+                                imageVector = Icons.Default.Check,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.error
@@ -339,14 +339,14 @@ fun AddActivityDialog(
 @Composable
 fun getActivityIcon(activityType: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (activityType.lowercase()) {
-        "planting", "plowing", "seeding" -> Icons.Default.Agriculture
-        "watering", "irrigation" -> Icons.Default.WaterDrop
-        "fertilizing", "fertilizer" -> Icons.Default.Grass
-        "harvesting", "harvest" -> Icons.Default.Inventory
-        "weeding" -> Icons.Default.Yard
-        "spraying", "pesticide" -> Icons.Default.Spa
-        "pruning" -> Icons.Default.ContentCut
-        else -> Icons.Default.Agriculture
+        "planting", "plowing", "seeding" -> Icons.Default.Info
+        "watering", "irrigation" -> Icons.Default.Info
+        "fertilizing", "fertilizer" -> Icons.Default.Info
+        "harvesting", "harvest" -> Icons.Default.Info
+        "weeding" -> Icons.Default.Info
+        "spraying", "pesticide" -> Icons.Default.Info
+        "pruning" -> Icons.Default.Info
+        else -> Icons.Default.Info
     }
 }
 

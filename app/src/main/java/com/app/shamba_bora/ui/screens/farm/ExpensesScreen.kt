@@ -123,7 +123,7 @@ fun ExpensesScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Payments,
+                                        imageVector = Icons.Default.Check,
                                         contentDescription = null,
                                         modifier = Modifier.size(64.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -294,16 +294,16 @@ fun AddExpenseDialog(
 @Composable
 fun getCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (category.lowercase()) {
-        "seeds" -> Icons.Default.Grass
-        "fertilizer", "fertilizers" -> Icons.Default.Science
-        "pesticides", "pesticide" -> Icons.Default.Spa
-        "labor", "labour" -> Icons.Default.People
+        "seeds" -> Icons.Default.Info
+        "fertilizer", "fertilizers" -> Icons.Default.Info
+        "pesticides", "pesticide" -> Icons.Default.Info
+        "labor", "labour" -> Icons.Default.Info
         "equipment" -> Icons.Default.Build
-        "fuel" -> Icons.Default.LocalGasStation
-        "water", "irrigation" -> Icons.Default.WaterDrop
-        "transport", "transportation" -> Icons.Default.LocalShipping
+        "fuel" -> Icons.Default.Info
+        "water", "irrigation" -> Icons.Default.Info
+        "transport", "transportation" -> Icons.Default.Info
         "maintenance" -> Icons.Default.Settings
-        else -> Icons.Default.Payments
+        else -> Icons.Default.Info
     }
 }
 

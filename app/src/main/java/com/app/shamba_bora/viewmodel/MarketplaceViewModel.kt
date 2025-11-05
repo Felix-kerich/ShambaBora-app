@@ -99,5 +99,9 @@ class MarketplaceViewModel @Inject constructor(
             loadOrders()
         }
     }
+    
+    fun getCurrentUserId(): Long {
+        return PreferenceManager.getUserId()
+    }
 }
 
