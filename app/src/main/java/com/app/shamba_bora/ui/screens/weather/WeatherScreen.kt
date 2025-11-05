@@ -164,6 +164,14 @@ fun WeatherScreen(
 
 @Composable
 fun CurrentWeatherCard(weather: Weather) {
+    // Get current weather data - either from direct fields or first forecast
+    val currentForecast = weather.dailyForecasts?.firstOrNull()
+    val temperature = weather.temperature ?: currentForecast?.tempDay
+    val description = weather.description ?: currentForecast?.weatherDescription
+    val humidity = weather.humidity ?: currentForecast?.humidity
+    val windSpeed = weather.windSpeed ?: currentForecast?.windSpeed
+    val weatherMain = currentForecast?.weatherMain
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -198,7 +206,7 @@ fun CurrentWeatherCard(weather: Weather) {
                 horizontalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    imageVector = getWeatherIcon(weather.description),
+                    imageVector = getWeatherIcon(description, weatherMain),
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -207,7 +215,7 @@ fun CurrentWeatherCard(weather: Weather) {
                 Spacer(modifier = Modifier.width(16.dp))
                 
                 Text(
-                    text = "${weather.temperature?.toInt() ?: "--"}°C",
+                    text = "${temperature?.toInt() ?: "--"}°C",
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -217,7 +225,7 @@ fun CurrentWeatherCard(weather: Weather) {
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = weather.description ?: "N/A",
+                text = description?.replaceFirstChar { it.uppercase() } ?: "N/A",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -231,14 +239,34 @@ fun CurrentWeatherCard(weather: Weather) {
                 WeatherDetail(
                     icon = Icons.Default.Info,
                     label = "Humidity",
-                    value = "${weather.humidity ?: 0}%"
+                    value = "${humidity ?: 0}%"
                 )
                 
                 WeatherDetail(
                     icon = Icons.Default.Info,
                     label = "Wind",
-                    value = "${weather.windSpeed ?: 0} m/s"
+                    value = "${String.format("%.1f", windSpeed ?: 0.0)} m/s"
                 )
+            }
+            
+            // Show temperature range if available
+            if (currentForecast?.tempMin != null && currentForecast.tempMax != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    WeatherDetail(
+                        icon = Icons.Default.ArrowDropDown,
+                        label = "Min",
+                        value = "${currentForecast.tempMin.toInt()}°C"
+                    )
+                    WeatherDetail(
+                        icon = Icons.Default.KeyboardArrowUp,
+                        label = "Max",
+                        value = "${currentForecast.tempMax.toInt()}°C"
+                    )
+                }
             }
         }
     }
@@ -294,7 +322,7 @@ fun ForecastDayCard(forecast: DailyForecast) {
             Spacer(modifier = Modifier.height(8.dp))
             
             Icon(
-                imageVector = getWeatherIcon(forecast.weatherDescription),
+                imageVector = getWeatherIcon(forecast.weatherDescription, forecast.weatherMain),
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -349,14 +377,15 @@ fun ForecastDayCard(forecast: DailyForecast) {
     }
 }
 
-fun getWeatherIcon(description: String?): androidx.compose.ui.graphics.vector.ImageVector {
-    return when (description?.lowercase()) {
-        "clear", "clear sky" -> Icons.Default.Star // Sunny
-        "clouds", "few clouds", "scattered clouds", "broken clouds", "overcast clouds" -> Icons.Default.Info
-        "rain", "light rain", "moderate rain", "heavy rain", "shower rain" -> Icons.Default.Info
-        "thunderstorm" -> Icons.Default.Warning // Thunderstorm
-        "snow" -> Icons.Default.Star // Snow
-        "mist", "fog", "haze" -> Icons.Default.Info
+fun getWeatherIcon(description: String?, weatherMain: String? = null): androidx.compose.ui.graphics.vector.ImageVector {
+    val mainCondition = weatherMain?.lowercase() ?: description?.lowercase() ?: ""
+    return when {
+        mainCondition.contains("clear") -> Icons.Default.Star // Sunny
+        mainCondition.contains("cloud") -> Icons.Default.Info // Cloudy
+        mainCondition.contains("rain") || mainCondition.contains("drizzle") -> Icons.Default.Info // Rainy
+        mainCondition.contains("thunder") -> Icons.Default.Warning // Thunderstorm
+        mainCondition.contains("snow") -> Icons.Default.Star // Snow
+        mainCondition.contains("mist") || mainCondition.contains("fog") || mainCondition.contains("haze") -> Icons.Default.Info
         else -> Icons.Default.Info
     }
 }

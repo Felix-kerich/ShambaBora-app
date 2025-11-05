@@ -36,6 +36,9 @@ class CommunityViewModel @Inject constructor(
     private val _commentsState = MutableStateFlow<Resource<PageResponse<PostComment>>>(Resource.Loading())
     val commentsState: StateFlow<Resource<PageResponse<PostComment>>> = _commentsState.asStateFlow()
     
+    private val _groupMembersState = MutableStateFlow<Resource<PageResponse<GroupMembership>>>(Resource.Loading())
+    val groupMembersState: StateFlow<Resource<PageResponse<GroupMembership>>> = _groupMembersState.asStateFlow()
+    
     init {
         loadFeed()
         loadMyGroups()
@@ -119,6 +122,13 @@ class CommunityViewModel @Inject constructor(
         viewModelScope.launch {
             repository.leaveGroup(groupId)
             loadMyGroups()
+        }
+    }
+    
+    fun loadGroupMembers(groupId: Long, page: Int = 0, size: Int = 50) {
+        viewModelScope.launch {
+            _groupMembersState.value = Resource.Loading()
+            _groupMembersState.value = repository.getGroupMembers(groupId, page, size)
         }
     }
     

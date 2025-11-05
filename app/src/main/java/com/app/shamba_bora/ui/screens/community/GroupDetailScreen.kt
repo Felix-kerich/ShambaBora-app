@@ -132,7 +132,9 @@ fun GroupDetailScreen(
                     viewModel = messagingViewModel
                 )
                 2 -> GroupMembersTab(
-                    group = group
+                    group = group,
+                    groupId = groupId,
+                    viewModel = communityViewModel
                 )
             }
         }
@@ -391,8 +393,16 @@ fun GroupChatTab(
 
 @Composable
 fun GroupMembersTab(
-    group: Group?
+    group: Group?,
+    groupId: Long,
+    viewModel: CommunityViewModel
 ) {
+    val membersState by viewModel.groupMembersState.collectAsState()
+    
+    LaunchedEffect(groupId) {
+        viewModel.loadGroupMembers(groupId)
+    }
+    
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -407,12 +417,52 @@ fun GroupMembersTab(
             )
         }
         
-        // Sample members - in real app, load from API
-        items(5) { index ->
-            MemberCard(
-                name = "Member ${index + 1}",
-                role = if (index == 0) "Admin" else "Member"
-            )
+        when (val state = membersState) {
+            is Resource.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LoadingIndicator()
+                    }
+                }
+            }
+            is Resource.Error -> {
+                item {
+                    ErrorView(
+                        message = state.message ?: "Failed to load members",
+                        onRetry = { viewModel.loadGroupMembers(groupId) }
+                    )
+                }
+            }
+            is Resource.Success -> {
+                val members = state.data?.content ?: emptyList()
+                if (members.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No members found",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    items(members) { membership ->
+                        MemberCard(
+                            membership = membership
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -533,13 +583,23 @@ fun GroupMessageCard(
                     .widthIn(max = 280.dp)
                     .padding(12.dp)
             ) {
+                // Show sender name for messages from others
+                if (!isSentByMe && message.senderName != null) {
+                    Text(
+                        text = message.senderName,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
                 Text(
                     text = message.content,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = message.sentAt ?: "",
+                    text = message.sentAt ?: message.createdAt ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -550,9 +610,17 @@ fun GroupMessageCard(
 
 @Composable
 fun MemberCard(
-    name: String,
-    role: String
+    membership: GroupMembership
 ) {
+    val displayRole = when (membership.role?.uppercase()) {
+        "OWNER" -> "Owner"
+        "ADMIN" -> "Admin"
+        "MODERATOR" -> "Moderator"
+        else -> "Member"
+    }
+    
+    val showBadge = membership.role?.uppercase() in listOf("OWNER", "ADMIN", "MODERATOR")
+    
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -577,23 +645,44 @@ fun MemberCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = name,
+                    text = membership.userName ?: "User ${membership.userId}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(
-                    text = role,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (role == "Admin") {
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.primary
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "ADMIN",
+                        text = displayRole,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (membership.joinedAt != null) {
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Joined ${membership.joinedAt}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            if (showBadge) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = when (membership.role?.uppercase()) {
+                        "OWNER" -> MaterialTheme.colorScheme.tertiary
+                        "ADMIN" -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.secondary
+                    }
+                ) {
+                    Text(
+                        text = membership.role?.uppercase() ?: "MEMBER",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary

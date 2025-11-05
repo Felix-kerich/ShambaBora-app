@@ -12,6 +12,9 @@ data class Message(
     @SerializedName("senderId")
     val senderId: Long,
     
+    @SerializedName("senderName")
+    val senderName: String? = null,
+    
     @SerializedName("content")
     val content: String,
     
