@@ -20,14 +20,14 @@ class AuthViewModel @Inject constructor(
     private val repository: AuthRepository
 ) : ViewModel() {
     
-    private val _loginState = MutableStateFlow<Resource<AuthResponse>>(Resource.Loading())
-    val loginState: StateFlow<Resource<AuthResponse>> = _loginState.asStateFlow()
+    private val _loginState = MutableStateFlow<Resource<AuthResponse>?>(null)
+    val loginState: StateFlow<Resource<AuthResponse>?> = _loginState.asStateFlow()
     
-    private val _registerState = MutableStateFlow<Resource<AuthResponse>>(Resource.Loading())
-    val registerState: StateFlow<Resource<AuthResponse>> = _registerState.asStateFlow()
+    private val _registerState = MutableStateFlow<Resource<AuthResponse>?>(null)
+    val registerState: StateFlow<Resource<AuthResponse>?> = _registerState.asStateFlow()
     
-    private val _userState = MutableStateFlow<Resource<User>>(Resource.Loading())
-    val userState: StateFlow<Resource<User>> = _userState.asStateFlow()
+    private val _userState = MutableStateFlow<Resource<User>?>(null)
+    val userState: StateFlow<Resource<User>?> = _userState.asStateFlow()
     
     fun login(usernameOrEmail: String, password: String) {
         viewModelScope.launch {
@@ -63,11 +63,11 @@ class AuthViewModel @Inject constructor(
     }
     
     fun clearLoginState() {
-        _loginState.value = Resource.Loading()
+        _loginState.value = null
     }
     
     fun clearRegisterState() {
-        _registerState.value = Resource.Loading()
+        _registerState.value = null
     }
 }
 

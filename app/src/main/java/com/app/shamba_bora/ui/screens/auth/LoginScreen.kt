@@ -32,15 +32,17 @@ fun LoginScreen(
     
     // Handle login state changes
     LaunchedEffect(loginState) {
-        when (loginState) {
-            is Resource.Success -> {
-                viewModel.clearLoginState()
-                onLoginSuccess()
+        loginState?.let { state ->
+            when (state) {
+                is Resource.Success -> {
+                    viewModel.clearLoginState()
+                    onLoginSuccess()
+                }
+                is Resource.Error -> {
+                    errorMessage = state.message
+                }
+                is Resource.Loading -> { /* Show loading */ }
             }
-            is Resource.Error -> {
-                errorMessage = (loginState as Resource.Error).message
-            }
-            else -> {}
         }
     }
     
@@ -148,7 +150,9 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            enabled = loginState !is Resource.Loading && username.isNotBlank() && password.isNotBlank()
+            enabled = (loginState == null || loginState is Resource.Error) && 
+                    username.isNotBlank() && 
+                    password.isNotBlank()
         ) {
             if (loginState is Resource.Loading) {
                 CircularProgressIndicator(
