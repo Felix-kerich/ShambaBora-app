@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.Group
+import com.app.shamba_bora.data.model.GroupMembership
 import com.app.shamba_bora.data.model.Message
 import com.app.shamba_bora.data.model.Post
 import com.app.shamba_bora.ui.components.ErrorView
