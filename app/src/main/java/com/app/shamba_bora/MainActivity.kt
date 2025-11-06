@@ -140,7 +140,10 @@ fun MainScreen() {
             },
             bottomBar = {
                 if (showBottomNav) {
-                    NavigationBar {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 3.dp
+                    ) {
                         val userRoles = PreferenceManager.getUserRoles()
                         val isBuyer = userRoles.contains("BUYER")
                         val isFarmer = userRoles.contains("FARMER")
@@ -175,8 +178,21 @@ fun MainScreen() {
                         
                         bottomNavItems.forEach { (screen, icon) ->
                             NavigationBarItem(
-                                icon = { Icon(icon, contentDescription = screen.title) },
-                                label = { Text(screen.title) },
+                                icon = { 
+                                    Icon(
+                                        icon, 
+                                        contentDescription = screen.title,
+                                        modifier = Modifier.size(24.dp)
+                                    ) 
+                                },
+                                label = { 
+                                    Text(
+                                        text = screen.title,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    ) 
+                                },
                                 selected = currentRoute == screen.route,
                                 onClick = {
                                     navController.navigate(screen.route) {
@@ -186,7 +202,8 @@ fun MainScreen() {
                                         launchSingleTop = true
                                         restoreState = true
                                     }
-                                }
+                                },
+                                alwaysShowLabel = true
                             )
                         }
                     }

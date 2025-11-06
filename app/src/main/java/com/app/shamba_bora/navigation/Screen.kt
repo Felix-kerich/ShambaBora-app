@@ -3,10 +3,10 @@ package com.app.shamba_bora.navigation
 sealed class Screen(val route: String, val title: String, val icon: String) {
     // Main Bottom Navigation Screens
     object Home : Screen("home", "Home", "home")
-    object Marketplace : Screen("marketplace", "Marketplace", "shopping")
+    object Marketplace : Screen("marketplace", "Market", "shopping")
     object Collaboration : Screen("collaboration", "Community", "people")
     object Records : Screen("records", "Records", "description")
-    object Chatbot : Screen("chatbot", "AI Assistant", "chat")
+    object Chatbot : Screen("chatbot", "AI Chat", "chat")
     
     // Auth Screens
     object Login : Screen("login", "Login", "login")
