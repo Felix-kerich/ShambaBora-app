@@ -61,12 +61,13 @@ fun EditProfileScreen(
     var certifications by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
+        // Always load user data first to get name and phone for auto-fill
+        viewModel.loadUser()
+        
         if (isFarmerProfile) {
             if (farmerProfileState !is Resource.Error) {
                 viewModel.loadFarmerProfile()
             }
-        } else {
-            viewModel.loadUser()
         }
     }
 

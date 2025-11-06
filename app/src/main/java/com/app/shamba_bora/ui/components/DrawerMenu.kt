@@ -70,7 +70,13 @@ fun DrawerMenu(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Menu Items
+            // Get user roles to determine which menu items to show
+            val userRoles = PreferenceManager.getUserRoles()
+            val isFarmer = userRoles.contains("FARMER")
+            val isBuyer = userRoles.contains("BUYER")
+            val isExtensionOfficer = userRoles.contains("EXTENSION_OFFICER")
+            
+            // Menu Items - All users can see Profile
             DrawerMenuItem(
                 icon = Icons.Default.Person,
                 title = "Profile",
@@ -82,40 +88,49 @@ fun DrawerMenu(
                 }
             )
         
+            // Farmer Profile - Only for Farmers
+            if (isFarmer) {
+                DrawerMenuItem(
+                    icon = Icons.Default.Build,
+                    title = "Farmer Profile",
+                    route = Screen.FarmerProfile.route,
+                    currentRoute = currentRoute,
+                    onClick = { 
+                        onNavigate(Screen.FarmerProfile.route)
+                        onClose()
+                    }
+                )
+            }
             
-            DrawerMenuItem(
-                icon = Icons.Default.Build,
-                title = "Farmer Profile",
-                route = Screen.FarmerProfile.route,
-                currentRoute = currentRoute,
-                onClick = { 
-                    onNavigate(Screen.FarmerProfile.route)
-                    onClose()
-                }
-            )
+            // Weather - Only for Farmers
+            if (isFarmer) {
+                DrawerMenuItem(
+                    icon = Icons.Default.DateRange,
+                    title = "Weather",
+                    route = Screen.Weather.route,
+                    currentRoute = currentRoute,
+                    onClick = { 
+                        onNavigate(Screen.Weather.route)
+                        onClose()
+                    }
+                )
+            }
             
-            DrawerMenuItem(
-                icon = Icons.Default.DateRange,
-                title = "Weather",
-                route = Screen.Weather.route,
-                currentRoute = currentRoute,
-                onClick = { 
-                    onNavigate(Screen.Weather.route)
-                    onClose()
-                }
-            )
+            // My Products - For Farmers and Extension Officers (sellers)
+            if (isFarmer || isExtensionOfficer) {
+                DrawerMenuItem(
+                    icon = Icons.Default.ShoppingCart,
+                    title = "My Products",
+                    route = Screen.MyProducts.route,
+                    currentRoute = currentRoute,
+                    onClick = { 
+                        onNavigate(Screen.MyProducts.route)
+                        onClose()
+                    }
+                )
+            }
             
-            DrawerMenuItem(
-                icon = Icons.Default.ShoppingCart,
-                title = "My Products",
-                route = Screen.MyProducts.route,
-                currentRoute = currentRoute,
-                onClick = { 
-                    onNavigate(Screen.MyProducts.route)
-                    onClose()
-                }
-            )
-            
+            // Orders - All users (buyers see purchases, sellers see sales)
             DrawerMenuItem(
                 icon = Icons.Default.ShoppingCart,
                 title = "Orders",
@@ -127,6 +142,7 @@ fun DrawerMenu(
                 }
             )
             
+            // Groups - All users
             DrawerMenuItem(
                 icon = Icons.Default.Person,
                 title = "Groups",
@@ -138,6 +154,7 @@ fun DrawerMenu(
                 }
             )
             
+            // Messages - All users
             DrawerMenuItem(
                 icon = Icons.Default.Email,
                 title = "Messages",
