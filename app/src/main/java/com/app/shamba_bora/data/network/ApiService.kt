@@ -396,9 +396,34 @@ interface ApiService {
         @Query("size") size: Int = 20
     ): Response<ApiResponse<PageResponse<Message>>>
     
-    // ========== CHATBOT ==========
+    // ========== CHATBOT / RAG SERVICE ==========
     @POST("query")
-    suspend fun queryChatbot(@Body request: ChatbotQueryRequest): Response<ChatbotQueryResponse>
+    suspend fun queryChatbot(@Body request: com.app.shamba_bora.data.model.ChatbotQueryRequest): Response<com.app.shamba_bora.data.model.ChatbotQueryResponse>
+    
+    @POST("conversations")
+    suspend fun createConversation(@Body request: com.app.shamba_bora.data.model.CreateConversationRequest): Response<com.app.shamba_bora.data.model.ChatbotConversation>
+    
+    @GET("conversations/{conversation_id}")
+    suspend fun getConversation(@Path("conversation_id") conversationId: String): Response<com.app.shamba_bora.data.model.ChatbotConversation>
+    
+    @GET("users/{user_id}/conversations")
+    suspend fun getUserConversations(
+        @Path("user_id") userId: String,
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0
+    ): Response<List<com.app.shamba_bora.data.model.ChatbotConversationSummary>>
+    
+    @PATCH("conversations/{conversation_id}")
+    suspend fun updateConversation(
+        @Path("conversation_id") conversationId: String,
+        @Body request: com.app.shamba_bora.data.model.UpdateConversationRequest
+    ): Response<com.app.shamba_bora.data.model.ChatbotConversation>
+    
+    @DELETE("conversations/{conversation_id}")
+    suspend fun deleteConversation(
+        @Path("conversation_id") conversationId: String,
+        @Query("user_id") userId: String
+    ): Response<Map<String, String>>
 }
 
 // ========== REQUEST/RESPONSE MODELS ==========
