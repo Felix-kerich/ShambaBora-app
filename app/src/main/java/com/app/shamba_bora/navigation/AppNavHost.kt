@@ -9,6 +9,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.app.shamba_bora.ui.screens.auth.LoginScreen
 import com.app.shamba_bora.ui.screens.auth.RegisterScreen
+import com.app.shamba_bora.utils.PreferenceManager
 import com.app.shamba_bora.ui.screens.chatbot.ChatbotScreen
 import com.app.shamba_bora.ui.screens.collaboration.CollaborationScreen
 import com.app.shamba_bora.ui.screens.dashboard.DashboardScreen
