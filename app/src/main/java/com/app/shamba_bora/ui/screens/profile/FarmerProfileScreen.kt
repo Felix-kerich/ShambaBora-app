@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -14,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,11 +60,26 @@ fun FarmerProfileScreen(
                 LoadingIndicator()
             }
             is Resource.Error -> {
-                // If no profile exists, redirect to create one
-                LaunchedEffect(Unit) {
-                    onNavigateToEdit()
+                // Show create profile button if no profile exists
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No farmer profile found",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    Button(
+                        onClick = onNavigateToEdit,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Text("Create Farmer Profile")
+                    }
                 }
-                LoadingIndicator()
             }
             is Resource.Success -> {
                 val profile = state.data

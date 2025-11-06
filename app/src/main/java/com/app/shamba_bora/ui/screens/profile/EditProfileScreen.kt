@@ -18,10 +18,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.FarmerProfileRequest
 import com.app.shamba_bora.ui.components.ErrorView
@@ -40,11 +43,11 @@ fun EditProfileScreen(
     val farmerProfileState by viewModel.farmerProfileState.collectAsState()
     val updateUserState by viewModel.updateUserState.collectAsState()
     val updateFarmerProfileState by viewModel.updateFarmerProfileState.collectAsState()
-    
+
     var fullName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    
+
     // Farmer profile fields
     var farmName by remember { mutableStateOf("") }
     var farmSize by remember { mutableStateOf("") }
@@ -56,52 +59,62 @@ fun EditProfileScreen(
     var primaryCrops by remember { mutableStateOf("") }
     var farmingExperience by remember { mutableStateOf("") }
     var certifications by remember { mutableStateOf("") }
-    
+
     LaunchedEffect(Unit) {
         if (isFarmerProfile) {
-            viewModel.loadFarmerProfile()
+            if (farmerProfileState !is Resource.Error) {
+                viewModel.loadFarmerProfile()
+            }
         } else {
             viewModel.loadUser()
         }
     }
-    
+
     LaunchedEffect(userState) {
-        if (userState is Resource.Success && !isFarmerProfile) {
+        if (userState is Resource.Success) {
             val user = userState.data
             fullName = user?.fullName ?: ""
             phoneNumber = user?.phoneNumber ?: ""
             email = user?.email ?: ""
         }
     }
-    
+
     LaunchedEffect(farmerProfileState) {
-        if (farmerProfileState is Resource.Success && isFarmerProfile) {
-            val profile = farmerProfileState.data
-            farmName = profile?.farmName ?: ""
-            farmSize = profile?.farmSize?.toString() ?: ""
-            location = profile?.location ?: ""
-            county = profile?.county ?: ""
-            farmDescription = profile?.farmDescription ?: ""
-            alternatePhone = profile?.alternatePhone ?: ""
-            postalAddress = profile?.postalAddress ?: ""
-            primaryCrops = profile?.primaryCrops?.joinToString(", ") ?: ""
-            farmingExperience = profile?.farmingExperience?.toString() ?: ""
-            certifications = profile?.certifications?.joinToString(", ") ?: ""
+        if (isFarmerProfile) {
+            when (farmerProfileState) {
+                is Resource.Success -> {
+                    val profile = farmerProfileState.data
+                    if (profile != null) {
+                        farmName = profile.farmName ?: ""
+                        farmSize = profile.farmSize?.toString() ?: ""
+                        location = profile.location ?: ""
+                        county = profile.county ?: ""
+                        farmDescription = profile.farmDescription ?: ""
+                        alternatePhone = profile.alternatePhone ?: ""
+                        postalAddress = profile.postalAddress ?: ""
+                        primaryCrops = profile.primaryCrops?.joinToString(", ") ?: ""
+                        farmingExperience = profile.farmingExperience?.toString() ?: ""
+                        certifications = profile.certifications?.joinToString(", ") ?: ""
+                    }
+                }
+                is Resource.Error -> {}
+                is Resource.Loading -> {}
+            }
         }
     }
-    
+
     LaunchedEffect(updateUserState) {
         if (updateUserState is Resource.Success) {
             onNavigateBack()
         }
     }
-    
+
     LaunchedEffect(updateFarmerProfileState) {
         if (updateFarmerProfileState is Resource.Success) {
             onNavigateBack()
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -115,15 +128,121 @@ fun EditProfileScreen(
         }
     ) { paddingValues ->
         when {
-            (isFarmerProfile && farmerProfileState is Resource.Loading) || 
-            (!isFarmerProfile && userState is Resource.Loading) -> {
+            (isFarmerProfile && farmerProfileState is Resource.Loading) ||
+                    (!isFarmerProfile && userState is Resource.Loading) -> {
                 LoadingIndicator()
             }
+            (isFarmerProfile && farmerProfileState is Resource.Success) -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    FarmerProfileForm(
+                        fullName = fullName,
+                        phoneNumber = phoneNumber,
+                        email = email,
+                        farmName = farmName,
+                        onFarmNameChange = { farmName = it },
+                        farmSize = farmSize,
+                        onFarmSizeChange = { farmSize = it },
+                        location = location,
+                        onLocationChange = { location = it },
+                        county = county,
+                        onCountyChange = { county = it },
+                        farmDescription = farmDescription,
+                        onFarmDescriptionChange = { farmDescription = it },
+                        alternatePhone = alternatePhone,
+                        onAlternatePhoneChange = { alternatePhone = it },
+                        postalAddress = postalAddress,
+                        onPostalAddressChange = { postalAddress = it },
+                        primaryCrops = primaryCrops,
+                        onPrimaryCropsChange = { primaryCrops = it },
+                        farmingExperience = farmingExperience,
+                        onFarmingExperienceChange = { farmingExperience = it },
+                        certifications = certifications,
+                        onCertificationsChange = { certifications = it },
+                        onSubmit = {
+                            val request = FarmerProfileRequest(
+                                farmName = farmName,
+                                farmSize = farmSize.toDoubleOrNull(),
+                                location = location.ifBlank { null },
+                                county = county.ifBlank { null },
+                                farmDescription = farmDescription.ifBlank { null },
+                                alternatePhone = alternatePhone.ifBlank { null },
+                                postalAddress = postalAddress.ifBlank { null },
+                                primaryCrops = primaryCrops.split(",").map { it.trim() }.filter { it.isNotBlank() },
+                                farmingExperience = farmingExperience.toIntOrNull(),
+                                certifications = certifications.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                            )
+                            viewModel.updateFarmerProfile(request)
+                        },
+                        isSubmitting = updateFarmerProfileState is Resource.Loading,
+                        errorMessage = if (updateFarmerProfileState is Resource.Error) {
+                            updateFarmerProfileState.message ?: "Failed to save profile"
+                        } else null,
+                        isEditMode = true
+                    )
+                }
+            }
             (isFarmerProfile && farmerProfileState is Resource.Error) -> {
-                ErrorView(
-                    message = farmerProfileState.message ?: "Failed to load profile",
-                    onRetry = { viewModel.refreshFarmerProfile() }
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    FarmerProfileForm(
+                        fullName = fullName,
+                        phoneNumber = phoneNumber,
+                        email = email,
+                        farmName = farmName,
+                        onFarmNameChange = { farmName = it },
+                        farmSize = farmSize,
+                        onFarmSizeChange = { farmSize = it },
+                        location = location,
+                        onLocationChange = { location = it },
+                        county = county,
+                        onCountyChange = { county = it },
+                        farmDescription = farmDescription,
+                        onFarmDescriptionChange = { farmDescription = it },
+                        alternatePhone = alternatePhone,
+                        onAlternatePhoneChange = { alternatePhone = it },
+                        postalAddress = postalAddress,
+                        onPostalAddressChange = { postalAddress = it },
+                        primaryCrops = primaryCrops,
+                        onPrimaryCropsChange = { primaryCrops = it },
+                        farmingExperience = farmingExperience,
+                        onFarmingExperienceChange = { farmingExperience = it },
+                        certifications = certifications,
+                        onCertificationsChange = { certifications = it },
+                        onSubmit = {
+                            val request = FarmerProfileRequest(
+                                farmName = farmName,
+                                farmSize = farmSize.toDoubleOrNull(),
+                                location = location.ifBlank { null },
+                                county = county.ifBlank { null },
+                                farmDescription = farmDescription.ifBlank { null },
+                                alternatePhone = alternatePhone.ifBlank { null },
+                                postalAddress = postalAddress.ifBlank { null },
+                                primaryCrops = primaryCrops.split(",").map { it.trim() }.filter { it.isNotBlank() },
+                                farmingExperience = farmingExperience.toIntOrNull(),
+                                certifications = certifications.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                            )
+                            viewModel.createFarmerProfile(request)
+                        },
+                        isSubmitting = updateFarmerProfileState is Resource.Loading,
+                        errorMessage = if (updateFarmerProfileState is Resource.Error) {
+                            updateFarmerProfileState.message ?: "Failed to save profile"
+                        } else null,
+                        isEditMode = false
+                    )
+                }
             }
             (!isFarmerProfile && userState is Resource.Error) -> {
                 ErrorView(
@@ -140,125 +259,7 @@ fun EditProfileScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (isFarmerProfile) {
-                        // Farmer Profile Fields
-                        OutlinedTextField(
-                            value = farmName,
-                            onValueChange = { farmName = it },
-                            label = { Text("Farm Name *") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = farmSize,
-                            onValueChange = { farmSize = it },
-                            label = { Text("Farm Size (acres)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = location,
-                            onValueChange = { location = it },
-                            label = { Text("Location") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = county,
-                            onValueChange = { county = it },
-                            label = { Text("County") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = farmDescription,
-                            onValueChange = { farmDescription = it },
-                            label = { Text("Farm Description") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                            maxLines = 5
-                        )
-                        
-                        OutlinedTextField(
-                            value = alternatePhone,
-                            onValueChange = { alternatePhone = it },
-                            label = { Text("Alternate Phone") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = postalAddress,
-                            onValueChange = { postalAddress = it },
-                            label = { Text("Postal Address") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = primaryCrops,
-                            onValueChange = { primaryCrops = it },
-                            label = { Text("Primary Crops (comma separated)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = farmingExperience,
-                            onValueChange = { farmingExperience = it },
-                            label = { Text("Farming Experience (years)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        OutlinedTextField(
-                            value = certifications,
-                            onValueChange = { certifications = it },
-                            label = { Text("Certifications (comma separated)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        
-                        Button(
-                            onClick = {
-                                val request = FarmerProfileRequest(
-                                    farmName = farmName,
-                                    farmSize = farmSize.toDoubleOrNull(),
-                                    location = location.ifBlank { null },
-                                    county = county.ifBlank { null },
-                                    farmDescription = farmDescription.ifBlank { null },
-                                    alternatePhone = alternatePhone.ifBlank { null },
-                                    postalAddress = postalAddress.ifBlank { null },
-                                    primaryCrops = primaryCrops.split(",").map { it.trim() }.filter { it.isNotBlank() },
-                                    farmingExperience = farmingExperience.toIntOrNull(),
-                                    certifications = certifications.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                                )
-                                
-                                if (farmerProfileState is Resource.Success && farmerProfileState.data != null) {
-                                    viewModel.updateFarmerProfile(request)
-                                } else {
-                                    viewModel.createFarmerProfile(request)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = farmName.isNotBlank()
-                        ) {
-                            Text("Save Farmer Profile")
-                        }
-                        
-                        if (updateFarmerProfileState is Resource.Error) {
-                            Text(
-                                text = updateFarmerProfileState.message ?: "Failed to update profile",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    } else {
-                        // User Profile Fields
+                    if (!isFarmerProfile) {
                         OutlinedTextField(
                             value = fullName,
                             onValueChange = { fullName = it },
@@ -266,7 +267,7 @@ fun EditProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
-                        
+
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
@@ -274,7 +275,7 @@ fun EditProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
-                        
+
                         OutlinedTextField(
                             value = phoneNumber,
                             onValueChange = { phoneNumber = it },
@@ -282,7 +283,7 @@ fun EditProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
-                        
+
                         Button(
                             onClick = {
                                 val request = com.app.shamba_bora.data.network.UpdateUserRequest(
@@ -296,7 +297,7 @@ fun EditProfileScreen(
                         ) {
                             Text("Save Profile")
                         }
-                        
+
                         if (updateUserState is Resource.Error) {
                             Text(
                                 text = updateUserState.message ?: "Failed to update profile",
@@ -311,3 +312,214 @@ fun EditProfileScreen(
     }
 }
 
+@Composable
+private fun FarmerProfileForm(
+    fullName: String,
+    phoneNumber: String,
+    email: String,
+    farmName: String,
+    onFarmNameChange: (String) -> Unit,
+    farmSize: String,
+    onFarmSizeChange: (String) -> Unit,
+    location: String,
+    onLocationChange: (String) -> Unit,
+    county: String,
+    onCountyChange: (String) -> Unit,
+    farmDescription: String,
+    onFarmDescriptionChange: (String) -> Unit,
+    alternatePhone: String,
+    onAlternatePhoneChange: (String) -> Unit,
+    postalAddress: String,
+    onPostalAddressChange: (String) -> Unit,
+    primaryCrops: String,
+    onPrimaryCropsChange: (String) -> Unit,
+    farmingExperience: String,
+    onFarmingExperienceChange: (String) -> Unit,
+    certifications: String,
+    onCertificationsChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    isSubmitting: Boolean = false,
+    errorMessage: String? = null,
+    isEditMode: Boolean = true
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // User Information Section
+        Text(
+            text = "Your Information",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Full Name",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = fullName.ifEmpty { "Not provided" },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Email",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = email.ifEmpty { "Not provided" },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Phone Number",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = phoneNumber.ifEmpty { "Not provided" },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Farm Information",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        OutlinedTextField(
+            value = farmName,
+            onValueChange = onFarmNameChange,
+            label = { Text("Farm Name *") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            isError = farmName.isBlank()
+        )
+
+        OutlinedTextField(
+            value = farmSize,
+            onValueChange = onFarmSizeChange,
+            label = { Text("Farm Size (acres)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = location,
+            onValueChange = onLocationChange,
+            label = { Text("Location") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = county,
+            onValueChange = onCountyChange,
+            label = { Text("County") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = farmDescription,
+            onValueChange = onFarmDescriptionChange,
+            label = { Text("Farm Description") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            maxLines = 5
+        )
+
+        OutlinedTextField(
+            value = alternatePhone,
+            onValueChange = onAlternatePhoneChange,
+            label = { Text("Alternate Phone") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = postalAddress,
+            onValueChange = onPostalAddressChange,
+            label = { Text("Postal Address") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = primaryCrops,
+            onValueChange = onPrimaryCropsChange,
+            label = { Text("Primary Crops (comma separated)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = farmingExperience,
+            onValueChange = onFarmingExperienceChange,
+            label = { Text("Farming Experience (years)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = certifications,
+            onValueChange = onCertificationsChange,
+            label = { Text("Certifications (comma separated)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Button(
+            onClick = { if (!isSubmitting) onSubmit() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            enabled = farmName.isNotBlank() && !isSubmitting
+        ) {
+            if (isSubmitting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(if (isEditMode) "Save Profile" else "Create Profile")
+            }
+        }
+    }
+}

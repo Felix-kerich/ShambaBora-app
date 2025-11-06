@@ -57,7 +57,7 @@ fun AppNavHost(
                     val userRoles = PreferenceManager.getUserRoles()
                     val destination = when {
                         userRoles.contains("BUYER") -> Screen.Marketplace.route
-                        userRoles.contains("EXTENSION_OFFICER") -> Screen.Marketplace.route
+                        userRoles.contains("EXTENSION_OFFICER") -> Screen.Collaboration.route
                         else -> Screen.Home.route
                     }
                     navController.navigate(destination) {

@@ -223,7 +223,7 @@ fun ExpenseDetailScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.AccountBalance,
+                                            imageVector = Icons.Default.AccountCircle,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                             modifier = Modifier.size(32.dp)
