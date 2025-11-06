@@ -464,21 +464,5 @@ data class ApiResponse<T>(
     val timestamp: String? = null
 )
 
-// Chatbot models
-data class ChatbotQueryRequest(
-    val question: String,
-    val k: Int = 4
-)
-
-data class ChatbotQueryResponse(
-    val answer: String,
-    val contexts: List<ChatbotContext>? = null
-)
-
-data class ChatbotContext(
-    val score: Double,
-    val id: String,
-    val text: String
-)
-
+// Chatbot models are now defined in ChatbotModels.kt
 // PageResponse is now defined in PageResponse.kt

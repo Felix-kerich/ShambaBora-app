@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.app.shamba_bora.data.network.ChatbotQueryRequest
-import com.app.shamba_bora.data.network.ChatbotQueryResponse
+import com.app.shamba_bora.data.model.ChatbotQueryRequest
+import com.app.shamba_bora.data.model.ChatbotQueryResponse
 import com.app.shamba_bora.data.network.ApiService
 import com.app.shamba_bora.utils.Constants
 import retrofit2.Retrofit
@@ -157,7 +157,11 @@ fun ChatbotScreen() {
                                 
                                 // Call the API
                                 val response = chatbotApi.queryChatbot(
-                                    ChatbotQueryRequest(question = message, k = 4)
+                                    ChatbotQueryRequest(
+                                        question = message,
+                                        k = 4,
+                                        userId = "user123" // TODO: Get from PreferenceManager
+                                    )
                                 )
                                 
                                 // Remove typing indicator
