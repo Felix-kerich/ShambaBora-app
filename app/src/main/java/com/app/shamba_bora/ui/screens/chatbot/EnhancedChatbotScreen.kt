@@ -17,6 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,15 +43,58 @@ fun EnhancedChatbotScreen(
     var currentConversationId by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var conversationToDelete by remember { mutableStateOf<String?>(null) }
+    var isLoadingConversation by remember { mutableStateOf(false) }
+    var lastPendingMessage by remember { mutableStateOf<String?>(null) }
+    var showMessageError by remember { mutableStateOf(false) }
+    var showFarmAdviceNotification by remember { mutableStateOf(false) }
+    var showFarmAdviceReadyDialog by remember { mutableStateOf(false) }
+    var farmAdviceReady by remember { mutableStateOf<FarmAdviceResponse?>(null) }
     
     val conversations by viewModel.conversations.collectAsState()
     val currentConversation by viewModel.currentConversation.collectAsState()
     val queryResponse by viewModel.queryResponse.collectAsState()
     val farmAdvice by viewModel.farmAdvice.collectAsState()
+    val farmAdviceBackgroundLoading by viewModel.farmAdviceBackgroundLoading.collectAsState()
+    val showFarmAdviceNotificationFlow by viewModel.showFarmAdviceNotification.collectAsState()
     val pendingMessage by viewModel.pendingMessage.collectAsState()
     
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    
+    // Track if message failed
+    LaunchedEffect(queryResponse) {
+        if (queryResponse is Resource.Error && pendingMessage != null) {
+            lastPendingMessage = pendingMessage
+            showMessageError = true
+        } else if (queryResponse is Resource.Success) {
+            showMessageError = false
+            lastPendingMessage = null
+        }
+    }
+    
+    // Track farm advice notification
+    LaunchedEffect(showFarmAdviceNotificationFlow) {
+        if (showFarmAdviceNotificationFlow && farmAdvice is Resource.Success) {
+            showFarmAdviceNotification = true
+            farmAdviceReady = (farmAdvice as Resource.Success<FarmAdviceResponse>).data
+        }
+    }
+    
+    // Close sidebar only after conversation is successfully loaded
+    LaunchedEffect(currentConversation) {
+        if (isLoadingConversation && currentConversation is Resource.Success) {
+            // Conversation loaded successfully, now close sidebar
+            scope.launch {
+                // Small delay to show the content before closing
+                kotlinx.coroutines.delay(300)
+                showHistory = false
+                isLoadingConversation = false
+            }
+        } else if (isLoadingConversation && currentConversation is Resource.Error) {
+            // Error loading conversation, keep sidebar open
+            isLoadingConversation = false
+        }
+    }
     
     // Auto-scroll when new messages arrive or pending message changes
     LaunchedEffect(currentConversation, pendingMessage) {
@@ -65,41 +110,10 @@ fun EnhancedChatbotScreen(
         }
     }
     
-    Row(modifier = Modifier.fillMaxSize()) {
-        // History Sidebar
-        AnimatedVisibility(
-            visible = showHistory,
-            enter = slideInHorizontally() + fadeIn(),
-            exit = slideOutHorizontally() + fadeOut()
-        ) {
-            ConversationHistorySidebar(
-                conversations = conversations,
-                currentConversationId = currentConversationId,
-                onConversationClick = { conversationId ->
-                    currentConversationId = conversationId
-                    viewModel.loadConversation(conversationId)
-                    showHistory = false
-                },
-                onNewConversation = {
-                    currentConversationId = null
-                    viewModel.createConversation(title = "New Chat") { newId ->
-                        currentConversationId = newId
-                    }
-                    showHistory = false
-                },
-                onDeleteConversation = { conversationId ->
-                    conversationToDelete = conversationId
-                    showDeleteDialog = true
-                },
-                onRefresh = { viewModel.loadConversations() }
-            )
-        }
-        
+    Box(modifier = Modifier.fillMaxSize()) {
         // Main Chat Area
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
+            modifier = Modifier.fillMaxSize()
         ) {
             // Header
             ChatHeader(
@@ -123,17 +137,27 @@ fun EnhancedChatbotScreen(
                         )
                     }
                     is Resource.Success -> {
-                        if (conv.data?.messages.isNullOrEmpty()) {
+                        // Show message list if there are messages OR if we have a pending message
+                        if (!conv.data?.messages.isNullOrEmpty() || pendingMessage != null) {
+                            MessageList(
+                                messages = conv.data?.messages ?: emptyList(),
+                                listState = listState,
+                                pendingMessage = pendingMessage,
+                                isLoading = queryResponse is Resource.Loading,
+                                hasError = showMessageError,
+                                onRetry = {
+                                    if (lastPendingMessage != null) {
+                                        showMessageError = false
+                                        viewModel.askQuestion(lastPendingMessage!!, currentConversationId)
+                                    }
+                                }
+                            )
+                        } else {
+                            // Show welcome screen only if no messages and no pending message
                             WelcomeScreen(
                                 onQuestionClick = { question ->
                                     viewModel.askQuestion(question, currentConversationId)
                                 }
-                            )
-                        } else {
-                            MessageList(
-                                messages = conv.data!!.messages,
-                                listState = listState,
-                                pendingMessage = pendingMessage
                             )
                         }
                     }
@@ -161,11 +185,80 @@ fun EnhancedChatbotScreen(
                 onMessageChange = { messageText = it },
                 onSend = {
                     if (messageText.isNotBlank()) {
-                        viewModel.askQuestion(messageText, currentConversationId)
+                        // Only create conversation if it doesn't exist
+                        if (currentConversationId == null) {
+                            viewModel.createConversation(title = messageText.take(50)) { newId ->
+                                currentConversationId = newId
+                                viewModel.askQuestion(messageText, newId)
+                            }
+                        } else {
+                            viewModel.askQuestion(messageText, currentConversationId)
+                        }
                         messageText = ""
                     }
                 },
                 isLoading = queryResponse is Resource.Loading
+            )
+        }
+        
+        // Floating Sidebar - Conversation History
+        AnimatedVisibility(
+            visible = showHistory,
+            enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
+            exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxHeight()
+        ) {
+            Box(modifier = Modifier.fillMaxHeight()) {
+                ConversationHistorySidebar(
+                    conversations = conversations,
+                    currentConversationId = currentConversationId,
+                    isLoadingConversation = isLoadingConversation,
+                    onConversationClick = { conversationId ->
+                        currentConversationId = conversationId
+                        isLoadingConversation = true
+                        viewModel.loadConversation(conversationId)
+                        // Sidebar will close automatically after conversation loads
+                    },
+                    onNewConversation = {
+                        currentConversationId = null
+                        viewModel.createConversation(title = "New Chat") { newId ->
+                            currentConversationId = newId
+                        }
+                        showHistory = false
+                    },
+                    onDeleteConversation = { conversationId ->
+                        conversationToDelete = conversationId
+                        showDeleteDialog = true
+                    },
+                    onRefresh = { viewModel.loadConversations() }
+                )
+                
+                // Close button for sidebar
+                IconButton(
+                    onClick = { showHistory = false },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close sidebar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        
+        // Scrim when sidebar is visible - NO LONGER CLOSES SIDEBAR
+        if (showHistory) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    // Removed: .clickable(enabled = showHistory) { showHistory = false }
+                    // Now only the close button closes the sidebar
             )
         }
     }
@@ -200,48 +293,172 @@ fun EnhancedChatbotScreen(
     }
     
     // Farm Advice Dialog
-    farmAdvice?.let { advice ->
-        if (advice is Resource.Success) {
-            FarmAdviceDialog(
-                advice = advice.data!!,
-                onDismiss = { viewModel.clearFarmAdvice() }
-            )
-        }
+    if (showFarmAdviceReadyDialog && farmAdviceReady != null) {
+        FarmAdviceDialog(
+            advice = farmAdviceReady!!,
+            onDismiss = {
+                showFarmAdviceReadyDialog = false
+                viewModel.clearFarmAdvice()
+            }
+        )
     }
     
-    // Farm Advice Loading Dialog
+    // Farm Advice Loading Dialog - with "Please Wait" message
     farmAdvice?.let { advice ->
-        if (advice is Resource.Loading) {
+            if (advice is Resource.Loading) {
             AlertDialog(
-                onDismissRequest = { },
-                title = { Text("Getting Farm Advice") },
-                text = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text("Analyzing your farm data...")
+                onDismissRequest = {
+                    // Allow user to close dialog and continue processing in background
+                    viewModel.startFarmAdviceBackgroundPolling()
+                    showFarmAdviceNotification = true
+                    // keep farmAdvice state so background polling continues in ViewModel
+                },
+                title = { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Getting Farm Advice")
                     }
                 },
-                confirmButton = { }
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        advice.message?.let { msg ->
+                            Text(
+                                msg,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } ?: run {
+                            Text(
+                                "Analyzing your farm data...",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        
+                        // Show what we're doing
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            ProgressStep(text = "Retrieving farm data", isActive = true)
+                            ProgressStep(text = "Analyzing conditions", isActive = true)
+                            ProgressStep(text = "Generating recommendations", isActive = true)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            // Start background polling and notify the UI
+                            viewModel.startFarmAdviceBackgroundPolling()
+                            showFarmAdviceNotification = true
+                        }
+                    ) {
+                        Text("Processing in background")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { /* Keep processing */ }) {
+                        Text("Keep waiting")
+                    }
+                }
             )
         }
     }
     
-    // Farm Advice Error Dialog
+    // Farm Advice Error Dialog - with timeout message
     farmAdvice?.let { advice ->
-        if (advice is Resource.Error) {
+        if (advice is Resource.Error && !farmAdviceBackgroundLoading) {
             AlertDialog(
                 onDismissRequest = { viewModel.clearFarmAdvice() },
-                title = { Text("Error") },
-                text = { Text(advice.message ?: "Failed to get farm advice") },
+                title = { Text("Farm Advice") },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            advice.message ?: "Failed to get farm advice",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        
+                        // Show helpful suggestions for common errors
+                        when {
+                            advice.message?.contains("Access denied", ignoreCase = true) == true || 
+                            advice.message?.contains("Authentication", ignoreCase = true) == true -> {
+                                Text(
+                                    "Tip: Make sure you're logged in with a valid account. You may need to log out and log back in to refresh your session.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            advice.message?.contains("Farm analytics data not found", ignoreCase = true) == true -> {
+                                Text(
+                                    "Tip: Complete your farm profile by adding farm details, soil information, and crop data. This helps the AI provide better advice.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            advice.message?.contains("Server error", ignoreCase = true) == true -> {
+                                Text(
+                                    "Tip: The server is experiencing issues. Please try again in a few moments.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            advice.message?.contains("taking longer", ignoreCase = true) == true -> {
+                                Text(
+                                    "Your farm advice is being processed in the background. You'll be notified when it's ready!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                },
                 confirmButton = {
                     TextButton(onClick = { viewModel.clearFarmAdvice() }) {
                         Text("OK")
                     }
+                },
+                dismissButton = {
+                    TextButton(onClick = { 
+                        viewModel.clearFarmAdvice()
+                        viewModel.getFarmAdvice() // Retry
+                    }) {
+                        Text("Retry")
+                    }
                 }
             )
+        }
+    }
+    
+    // Farm Advice Ready Notification
+    if (showFarmAdviceNotification && farmAdviceReady != null) {
+        Snackbar(
+            modifier = Modifier.padding(16.dp),
+            action = {
+                TextButton(
+                    onClick = {
+                        showFarmAdviceReadyDialog = true
+                        showFarmAdviceNotification = false
+                    }
+                ) {
+                    Text("View", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text("Your farm advice is ready!")
+            }
         }
     }
 }
@@ -327,6 +544,7 @@ fun ChatHeader(
 fun ConversationHistorySidebar(
     conversations: Resource<List<ChatbotConversationSummary>>,
     currentConversationId: String?,
+    isLoadingConversation: Boolean = false,
     onConversationClick: (String) -> Unit,
     onNewConversation: () -> Unit,
     onDeleteConversation: (String) -> Unit,
@@ -417,6 +635,7 @@ fun ConversationHistorySidebar(
                                 ConversationItem(
                                     conversation = conversation,
                                     isSelected = conversation.conversationId == currentConversationId,
+                                    isLoading = isLoadingConversation && conversation.conversationId == currentConversationId,
                                     onClick = { onConversationClick(conversation.conversationId) },
                                     onDelete = { onDeleteConversation(conversation.conversationId) }
                                 )
@@ -452,6 +671,7 @@ fun ConversationHistorySidebar(
 fun ConversationItem(
     conversation: ChatbotConversationSummary,
     isSelected: Boolean,
+    isLoading: Boolean = false,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -460,7 +680,7 @@ fun ConversationItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick, enabled = !isLoading),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) 
                 MaterialTheme.colorScheme.primaryContainer 
@@ -476,17 +696,35 @@ fun ConversationItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = conversation.title ?: "Untitled",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isSelected) 
-                        MaterialTheme.colorScheme.onPrimaryContainer 
-                    else 
-                        MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = conversation.title ?: "Untitled",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isSelected) 
+                            MaterialTheme.colorScheme.onPrimaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    // Show loading indicator when this conversation is being loaded
+                    if (isLoading) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = if (isSelected) 
+                                MaterialTheme.colorScheme.onPrimaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = conversation.lastMessage ?: "No messages",
@@ -510,7 +748,7 @@ fun ConversationItem(
             }
             
             Box {
-                IconButton(onClick = { showMenu = true }) {
+                IconButton(onClick = { showMenu = true }, enabled = !isLoading) {
                     Icon(
                         Icons.Default.MoreVert,
                         contentDescription = "More",
@@ -545,7 +783,10 @@ fun ConversationItem(
 fun MessageList(
     messages: List<ChatbotMessage>,
     listState: androidx.compose.foundation.lazy.LazyListState,
-    pendingMessage: String? = null
+    pendingMessage: String? = null,
+    isLoading: Boolean = false,
+    hasError: Boolean = false,
+    onRetry: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -557,10 +798,21 @@ fun MessageList(
             MessageBubble(message = message)
         }
         
-        // Show pending message if exists
+        // Show pending user message if exists
         pendingMessage?.let { pending ->
             item {
-                PendingMessageBubble(message = pending)
+                PendingMessageBubble(
+                    message = pending,
+                    hasError = hasError,
+                    onRetry = onRetry
+                )
+            }
+        }
+        
+        // Show AI loading indicator when waiting for response (but only if not showing error)
+        if (isLoading && pendingMessage != null && !hasError) {
+            item {
+                LoadingResponseBubble()
             }
         }
     }
@@ -645,7 +897,7 @@ fun MessageBubble(message: ChatbotMessage) {
 }
 
 @Composable
-fun PendingMessageBubble(message: String) {
+fun PendingMessageBubble(message: String, hasError: Boolean = false, onRetry: () -> Unit = {}) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
@@ -655,7 +907,10 @@ fun PendingMessageBubble(message: String) {
         ) {
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    containerColor = if (hasError)
+                        MaterialTheme.colorScheme.errorContainer
+                    else
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                 ),
                 shape = RoundedCornerShape(
                     topStart = 16.dp,
@@ -664,31 +919,68 @@ fun PendingMessageBubble(message: String) {
                     bottomEnd = 4.dp
                 )
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(12.dp)
                 ) {
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (hasError)
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else
+                                MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (hasError) {
+                            // Show retry icon
+                            IconButton(
+                                onClick = onRetry,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Retry",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+                    
+                    // Show error message if failed
+                    if (hasError) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Failed to send. Tap retry to resend.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
                 }
             }
             
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Sending...",
+                text = if (hasError) "Failed" else "Sending...",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                color = if (hasError)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
@@ -704,6 +996,70 @@ fun PendingMessageBubble(message: String) {
                 contentDescription = "User",
                 modifier = Modifier.padding(8.dp),
                 tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+fun LoadingResponseBubble() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Surface(
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Icon(
+                imageVector = Icons.Default.Build,
+                contentDescription = "AI",
+                modifier = Modifier.padding(8.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        Column(
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                shape = RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
+                    bottomStart = 4.dp,
+                    bottomEnd = 16.dp
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "AI is thinking...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Text(
+                text = "Generating response",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
     }
@@ -991,7 +1347,7 @@ fun FarmAdviceDialog(
                         AdviceSection(
                             title = "Seed Recommendations",
                             items = advice.seedRecommendations,
-                            icon = Icons.Default.Nature
+                            icon = Icons.Default.Info
                         )
                     }
                 }
@@ -1095,5 +1451,33 @@ fun AdviceSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ProgressStep(text: String, isActive: Boolean = false) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (isActive) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 1.5.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        } else {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            )
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
     }
 }
