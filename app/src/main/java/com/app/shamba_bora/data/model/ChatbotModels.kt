@@ -97,3 +97,14 @@ data class UpdateConversationRequest(
     val title: String? = null,
     val metadata: Map<String, Any>? = null
 )
+
+/**
+ * Farm advice response from the analytics API
+ */
+data class FarmAdviceResponse(
+    val advice: String,
+    val fertilizerRecommendations: List<String>,
+    val seedRecommendations: List<String>,
+    val prioritizedActions: List<String>,
+    val riskWarnings: List<String>
+)

@@ -424,6 +424,10 @@ interface ApiService {
         @Path("conversation_id") conversationId: String,
         @Query("user_id") userId: String
     ): Response<Map<String, String>>
+    
+    // ========== FARM ANALYTICS ==========
+    @GET("farm-analytics/advice")
+    suspend fun getFarmAdvice(): Response<com.app.shamba_bora.data.model.FarmAdviceResponse>
 }
 
 // ========== REQUEST/RESPONSE MODELS ==========

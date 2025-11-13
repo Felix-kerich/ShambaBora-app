@@ -44,6 +44,8 @@ fun EnhancedChatbotScreen(
     val conversations by viewModel.conversations.collectAsState()
     val currentConversation by viewModel.currentConversation.collectAsState()
     val queryResponse by viewModel.queryResponse.collectAsState()
+    val farmAdvice by viewModel.farmAdvice.collectAsState()
+    val pendingMessage by viewModel.pendingMessage.collectAsState()
     
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -120,7 +122,8 @@ fun EnhancedChatbotScreen(
                         } else {
                             MessageList(
                                 messages = conv.data!!.messages,
-                                listState = listState
+                                listState = listState,
+                                pendingMessage = pendingMessage
                             )
                         }
                     }
@@ -181,6 +184,46 @@ fun EnhancedChatbotScreen(
             }
         )
     }
+    
+    // Farm Advice Dialog
+    if (farmAdvice is Resource.Success) {
+        FarmAdviceDialog(
+            advice = farmAdvice.data!!,
+            onDismiss = { viewModel.clearFarmAdvice() }
+        )
+    }
+    
+    // Farm Advice Loading Dialog
+    if (farmAdvice is Resource.Loading) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("Getting Farm Advice") },
+            text = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Analyzing your farm data...")
+                }
+            },
+            confirmButton = { }
+        )
+    }
+    
+    // Farm Advice Error Dialog
+    if (farmAdvice is Resource.Error) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearFarmAdvice() },
+            title = { Text("Error") },
+            text = { Text(farmAdvice.message ?: "Failed to get farm advice") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearFarmAdvice() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -188,7 +231,8 @@ fun EnhancedChatbotScreen(
 fun ChatHeader(
     title: String,
     onMenuClick: () -> Unit,
-    onNewChat: () -> Unit
+    onNewChat: () -> Unit,
+    onGetAdvice: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -237,6 +281,14 @@ fun ChatHeader(
                     text = "Online • Powered by RAG",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                )
+            }
+            
+            IconButton(onClick = onGetAdvice) {
+                Icon(
+                    imageVector = Icons.Default.Lightbulb,
+                    contentDescription = "Get Farm Advice",
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
             
@@ -565,6 +617,71 @@ fun MessageBubble(message: ChatbotMessage) {
 }
 
 @Composable
+fun PendingMessageBubble(message: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End
+    ) {
+        Column(
+            modifier = Modifier.widthIn(max = 280.dp)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                ),
+                shape = RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
+                    bottomStart = 16.dp,
+                    bottomEnd = 4.dp
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Text(
+                text = "Sending...",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        Surface(
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.secondaryContainer
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "User",
+                modifier = Modifier.padding(8.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
 fun WelcomeScreen() {
     Column(
         modifier = Modifier
@@ -757,5 +874,184 @@ private fun formatTimestamp(timestamp: String): String {
         outputFormat.format(date ?: Date())
     } catch (e: Exception) {
         ""
+    }
+}
+
+@Composable
+fun FarmAdviceDialog(
+    advice: FarmAdviceResponse,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Lightbulb,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Farm Advice",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Main Advice
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                "General Advice",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                advice.advice,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+                
+                // Fertilizer Recommendations
+                if (advice.fertilizerRecommendations.isNotEmpty()) {
+                    item {
+                        AdviceSection(
+                            title = "Fertilizer Recommendations",
+                            items = advice.fertilizerRecommendations,
+                            icon = Icons.Default.Eco
+                        )
+                    }
+                }
+                
+                // Seed Recommendations
+                if (advice.seedRecommendations.isNotEmpty()) {
+                    item {
+                        AdviceSection(
+                            title = "Seed Recommendations",
+                            items = advice.seedRecommendations,
+                            icon = Icons.Default.Grass
+                        )
+                    }
+                }
+                
+                // Prioritized Actions
+                if (advice.prioritizedActions.isNotEmpty()) {
+                    item {
+                        AdviceSection(
+                            title = "Priority Actions",
+                            items = advice.prioritizedActions,
+                            icon = Icons.Default.CheckCircle
+                        )
+                    }
+                }
+                
+                // Risk Warnings
+                if (advice.riskWarnings.isNotEmpty()) {
+                    item {
+                        AdviceSection(
+                            title = "Risk Warnings",
+                            items = advice.riskWarnings,
+                            icon = Icons.Default.Warning,
+                            isWarning = true
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+fun AdviceSection(
+    title: String,
+    items: List<String>,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isWarning: Boolean = false
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (isWarning) 
+                MaterialTheme.colorScheme.errorContainer 
+            else 
+                MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = if (isWarning) 
+                        MaterialTheme.colorScheme.onErrorContainer 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isWarning) 
+                        MaterialTheme.colorScheme.onErrorContainer 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            items.forEach { item ->
+                Row(
+                    modifier = Modifier.padding(vertical = 2.dp)
+                ) {
+                    Text(
+                        "• ",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isWarning) 
+                            MaterialTheme.colorScheme.onErrorContainer 
+                        else 
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        item,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isWarning) 
+                            MaterialTheme.colorScheme.onErrorContainer 
+                        else 
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }

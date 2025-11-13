@@ -31,7 +31,14 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
     private val _queryResponse = MutableStateFlow<Resource<ChatbotQueryResponse>?>(null)
     val queryResponse: StateFlow<Resource<ChatbotQueryResponse>?> = _queryResponse.asStateFlow()
     
+    private val _farmAdvice = MutableStateFlow<Resource<FarmAdviceResponse>?>(null)
+    val farmAdvice: StateFlow<Resource<FarmAdviceResponse>?> = _farmAdvice.asStateFlow()
+    
+    private val _pendingMessage = MutableStateFlow<String?>(null)
+    val pendingMessage: StateFlow<String?> = _pendingMessage.asStateFlow()
+    
     private val chatbotApi: ApiService
+    private val mainApi: ApiService
     
     init {
         // Create dedicated Retrofit instance for chatbot service
@@ -46,13 +53,23 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
         
-        val retrofit = Retrofit.Builder()
+        // Chatbot API (RAG service)
+        val chatbotRetrofit = Retrofit.Builder()
             .baseUrl(Constants.CHATBOT_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         
-        chatbotApi = retrofit.create(ApiService::class.java)
+        chatbotApi = chatbotRetrofit.create(ApiService::class.java)
+        
+        // Main API (Spring Boot backend)
+        val mainRetrofit = Retrofit.Builder()
+            .baseUrl("${Constants.BASE_URL}${Constants.API_PREFIX}/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        
+        mainApi = mainRetrofit.create(ApiService::class.java)
         
         // Load conversations on init
         loadConversations()
@@ -120,7 +137,10 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
     
     fun askQuestion(question: String, conversationId: String? = null) {
         viewModelScope.launch {
+            // Set pending message to show immediately in UI
+            _pendingMessage.value = question
             _queryResponse.value = Resource.Loading()
+            
             try {
                 val userId = PreferenceManager.getUserId().toString()
                 val request = ChatbotQueryRequest(
@@ -136,13 +156,18 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
                     val result = response.body()!!
                     _queryResponse.value = Resource.Success(result)
                     
+                    // Clear pending message
+                    _pendingMessage.value = null
+                    
                     // Reload the conversation to get updated messages
                     loadConversation(result.conversationId)
                 } else {
                     _queryResponse.value = Resource.Error("Failed to get answer: ${response.message()}")
+                    _pendingMessage.value = null
                 }
             } catch (e: Exception) {
                 _queryResponse.value = Resource.Error("Error: ${e.message ?: "Unable to connect"}")
+                _pendingMessage.value = null
             }
         }
     }
