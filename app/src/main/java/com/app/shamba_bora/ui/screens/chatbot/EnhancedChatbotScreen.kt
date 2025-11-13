@@ -200,11 +200,13 @@ fun EnhancedChatbotScreen(
     }
     
     // Farm Advice Dialog
-    if (farmAdvice is Resource.Success) {
-        FarmAdviceDialog(
-            advice = farmAdvice.data!!,
-            onDismiss = { viewModel.clearFarmAdvice() }
-        )
+    farmAdvice?.let { advice ->
+        if (advice is Resource.Success) {
+            FarmAdviceDialog(
+                advice = advice.data!!,
+                onDismiss = { viewModel.clearFarmAdvice() }
+            )
+        }
     }
     
     // Farm Advice Loading Dialog
@@ -542,7 +544,8 @@ fun ConversationItem(
 @Composable
 fun MessageList(
     messages: List<ChatbotMessage>,
-    listState: androidx.compose.foundation.lazy.LazyListState
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    pendingMessage: String? = null
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -552,6 +555,13 @@ fun MessageList(
     ) {
         items(messages) { message ->
             MessageBubble(message = message)
+        }
+        
+        // Show pending message if exists
+        pendingMessage?.let { pending ->
+            item {
+                PendingMessageBubble(message = pending)
+            }
         }
     }
 }
@@ -761,9 +771,14 @@ fun WelcomeScreen(onQuestionClick: (String) -> Unit = {}) {
 }
 
 @Composable
-fun SuggestedQuestion(question: String) {
+fun SuggestedQuestion(
+    question: String,
+    onClick: () -> Unit = {}
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
