@@ -148,13 +148,13 @@ interface ApiService {
     @GET("weather/forecast")
     suspend fun getWeatherForecast(@Query("location") location: String): Response<Weather>
     
-    @GET("weather/forecast/daily")
+    @GET("weather/forecast")
     suspend fun getDailyForecast(
         @Query("location") location: String,
         @Query("days") days: Int = 7
     ): Response<Weather>
     
-    @GET("weather/forecast/monthly")
+    @GET("weather/forecast")
     suspend fun getMonthlyStats(
         @Query("location") location: String,
         @Query("month") month: Int

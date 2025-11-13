@@ -63,11 +63,9 @@ fun EditProfileScreen(
     LaunchedEffect(Unit) {
         // Always load user data first to get name and phone for auto-fill
         viewModel.loadUser()
-        
+
         if (isFarmerProfile) {
-            if (farmerProfileState !is Resource.Error) {
-                viewModel.loadFarmerProfile()
-            }
+            viewModel.loadFarmerProfile()
         }
     }
 
@@ -77,6 +75,11 @@ fun EditProfileScreen(
             fullName = user?.fullName ?: ""
             phoneNumber = user?.phoneNumber ?: ""
             email = user?.email ?: ""
+
+            // Auto-fill alternate phone with main phone if empty
+            if (alternatePhone.isEmpty() && phoneNumber.isNotEmpty()) {
+                alternatePhone = phoneNumber
+            }
         }
     }
 
@@ -91,27 +94,37 @@ fun EditProfileScreen(
                         location = profile.location ?: ""
                         county = profile.county ?: ""
                         farmDescription = profile.farmDescription ?: ""
-                        alternatePhone = profile.alternatePhone ?: ""
+                        alternatePhone = profile.alternatePhone ?: phoneNumber
                         postalAddress = profile.postalAddress ?: ""
                         primaryCrops = profile.primaryCrops?.joinToString(", ") ?: ""
                         farmingExperience = profile.farmingExperience?.toString() ?: ""
                         certifications = profile.certifications?.joinToString(", ") ?: ""
                     }
                 }
-                is Resource.Error -> {}
+                is Resource.Error -> {
+                    // Auto-fill alternate phone with main phone for new profiles
+                    if (alternatePhone.isEmpty() && phoneNumber.isNotEmpty()) {
+                        alternatePhone = phoneNumber
+                    }
+                }
                 is Resource.Loading -> {}
             }
         }
     }
 
+    // Track if we've already handled success to prevent multiple navigations
+    var hasNavigated by remember { mutableStateOf(false) }
+
     LaunchedEffect(updateUserState) {
-        if (updateUserState is Resource.Success) {
+        if (updateUserState is Resource.Success && !hasNavigated) {
+            hasNavigated = true
             onNavigateBack()
         }
     }
 
     LaunchedEffect(updateFarmerProfileState) {
-        if (updateFarmerProfileState is Resource.Success) {
+        if (updateFarmerProfileState is Resource.Success && !hasNavigated) {
+            hasNavigated = true
             onNavigateBack()
         }
     }
@@ -144,8 +157,11 @@ fun EditProfileScreen(
                 ) {
                     FarmerProfileForm(
                         fullName = fullName,
+                        onFullNameChange = { fullName = it },
                         phoneNumber = phoneNumber,
+                        onPhoneNumberChange = { phoneNumber = it },
                         email = email,
+                        onEmailChange = { email = it },
                         farmName = farmName,
                         onFarmNameChange = { farmName = it },
                         farmSize = farmSize,
@@ -200,8 +216,11 @@ fun EditProfileScreen(
                 ) {
                     FarmerProfileForm(
                         fullName = fullName,
+                        onFullNameChange = { fullName = it },
                         phoneNumber = phoneNumber,
+                        onPhoneNumberChange = { phoneNumber = it },
                         email = email,
+                        onEmailChange = { email = it },
                         farmName = farmName,
                         onFarmNameChange = { farmName = it },
                         farmSize = farmSize,
@@ -294,9 +313,18 @@ fun EditProfileScreen(
                                 )
                                 viewModel.updateUser(request)
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = updateUserState !is Resource.Loading
                         ) {
-                            Text("Save Profile")
+                            if (updateUserState is Resource.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Text("Save Profile")
+                            }
                         }
 
                         if (updateUserState is Resource.Error) {
@@ -316,8 +344,11 @@ fun EditProfileScreen(
 @Composable
 private fun FarmerProfileForm(
     fullName: String,
+    onFullNameChange: (String) -> Unit,
     phoneNumber: String,
+    onPhoneNumberChange: (String) -> Unit,
     email: String,
+    onEmailChange: (String) -> Unit,
     farmName: String,
     onFarmNameChange: (String) -> Unit,
     farmSize: String,
@@ -355,57 +386,31 @@ private fun FarmerProfileForm(
             modifier = Modifier.padding(bottom = 4.dp)
         )
 
-        Card(
+        OutlinedTextField(
+            value = fullName,
+            onValueChange = onFullNameChange,
+            label = { Text("Full Name *") },
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Full Name",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = fullName.ifEmpty { "Not provided" },
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+            singleLine = true,
+            isError = fullName.isBlank()
+        )
 
-                HorizontalDivider()
+        OutlinedTextField(
+            value = email,
+            onValueChange = onEmailChange,
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
 
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Email",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = email.ifEmpty { "Not provided" },
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-
-                HorizontalDivider()
-
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Phone Number",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = phoneNumber.ifEmpty { "Not provided" },
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-        }
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = onPhoneNumberChange,
+            label = { Text("Phone Number *") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            isError = phoneNumber.isBlank()
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -506,21 +511,36 @@ private fun FarmerProfileForm(
         }
 
         Button(
-            onClick = { if (!isSubmitting) onSubmit() },
+            onClick = onSubmit,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            enabled = farmName.isNotBlank() && !isSubmitting
+            enabled = farmName.isNotBlank() && fullName.isNotBlank() && phoneNumber.isNotBlank() && !isSubmitting
         ) {
             if (isSubmitting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text("Saving...")
+                }
             } else {
                 Text(if (isEditMode) "Save Profile" else "Create Profile")
             }
+        }
+
+        // Debug info - remove after testing
+        if (isSubmitting) {
+            Text(
+                text = "Debug: Button is in submitting state",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -16,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.AuthViewModel
+import com.app.shamba_bora.R
 
 @Composable
 fun LoginScreen(
@@ -54,18 +57,12 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         // Logo/Icon
-        Surface(
-            modifier = Modifier.size(120.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Icon(
-                imageVector = Icons.Default.Build,
-                contentDescription = "ShambaBora",
-                modifier = Modifier.padding(32.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.maize),
+            contentDescription = "ShambaBora",
+            modifier = Modifier
+                .size(120.dp)
+        )
         
         Spacer(modifier = Modifier.height(32.dp))
         
