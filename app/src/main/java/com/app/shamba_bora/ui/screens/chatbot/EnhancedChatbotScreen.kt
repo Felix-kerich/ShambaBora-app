@@ -79,6 +79,18 @@ fun EnhancedChatbotScreen(
             farmAdviceReady = (farmAdvice as Resource.Success<FarmAdviceResponse>).data
         }
     }
+
+    // Ensure that whenever farmAdvice becomes Success we open the ready dialog
+    // This makes sure the response modal shows even if the loading dialog was open
+    LaunchedEffect(farmAdvice) {
+        if (farmAdvice is Resource.Success) {
+            farmAdviceReady = (farmAdvice as Resource.Success<FarmAdviceResponse>).data
+            // Show the full advice dialog immediately
+            showFarmAdviceReadyDialog = true
+            // hide the transient snackbar flag - dialog will present the content
+            showFarmAdviceNotification = false
+        }
+    }
     
     // Close sidebar only after conversation is successfully loaded
     LaunchedEffect(currentConversation) {

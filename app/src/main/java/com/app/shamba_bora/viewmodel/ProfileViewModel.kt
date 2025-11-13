@@ -26,11 +26,13 @@ class ProfileViewModel @Inject constructor(
     private val _farmerProfileState = MutableStateFlow<Resource<FarmerProfile>>(Resource.Loading())
     val farmerProfileState: StateFlow<Resource<FarmerProfile>> = _farmerProfileState.asStateFlow()
     
-    private val _updateUserState = MutableStateFlow<Resource<User>>(Resource.Loading())
-    val updateUserState: StateFlow<Resource<User>> = _updateUserState.asStateFlow()
+    // Start with null (idle state) instead of Loading
+    private val _updateUserState = MutableStateFlow<Resource<User>?>(null)
+    val updateUserState: StateFlow<Resource<User>?> = _updateUserState.asStateFlow()
     
-    private val _updateFarmerProfileState = MutableStateFlow<Resource<FarmerProfile>>(Resource.Loading())
-    val updateFarmerProfileState: StateFlow<Resource<FarmerProfile>> = _updateFarmerProfileState.asStateFlow()
+    // Start with null (idle state) instead of Loading
+    private val _updateFarmerProfileState = MutableStateFlow<Resource<FarmerProfile>?>(null)
+    val updateFarmerProfileState: StateFlow<Resource<FarmerProfile>?> = _updateFarmerProfileState.asStateFlow()
     
     fun loadUser() {
         viewModelScope.launch {
@@ -49,10 +51,14 @@ class ProfileViewModel @Inject constructor(
     fun updateUser(request: UpdateUserRequest) {
         viewModelScope.launch {
             _updateUserState.value = Resource.Loading()
-            _updateUserState.value = repository.updateUser(request)
-            // Reload user after update
-            if (_updateUserState.value is Resource.Success) {
+            val result = repository.updateUser(request)
+            _updateUserState.value = result
+            // Only reload if success
+            if (result is Resource.Success) {
+                kotlinx.coroutines.delay(500)  // Small delay to ensure UI reacts before reload
                 loadUser()
+                // Reset to null (idle) after successful update
+                _updateUserState.value = null
             }
         }
     }
@@ -60,10 +66,14 @@ class ProfileViewModel @Inject constructor(
     fun createFarmerProfile(request: FarmerProfileRequest) {
         viewModelScope.launch {
             _updateFarmerProfileState.value = Resource.Loading()
-            _updateFarmerProfileState.value = repository.createFarmerProfile(request)
-            // Reload profile after creation
-            if (_updateFarmerProfileState.value is Resource.Success) {
+            val result = repository.createFarmerProfile(request)
+            _updateFarmerProfileState.value = result
+            // Only reload if success
+            if (result is Resource.Success) {
+                kotlinx.coroutines.delay(500)  // Small delay to ensure UI reacts before reload
                 loadFarmerProfile()
+                // Reset to null (idle) after successful creation
+                _updateFarmerProfileState.value = null
             }
         }
     }
@@ -71,10 +81,14 @@ class ProfileViewModel @Inject constructor(
     fun updateFarmerProfile(request: FarmerProfileRequest) {
         viewModelScope.launch {
             _updateFarmerProfileState.value = Resource.Loading()
-            _updateFarmerProfileState.value = repository.updateMyFarmerProfile(request)
-            // Reload profile after update
-            if (_updateFarmerProfileState.value is Resource.Success) {
+            val result = repository.updateMyFarmerProfile(request)
+            _updateFarmerProfileState.value = result
+            // Only reload if success
+            if (result is Resource.Success) {
+                kotlinx.coroutines.delay(500)  // Small delay to ensure UI reacts before reload
                 loadFarmerProfile()
+                // Reset to null (idle) after successful update
+                _updateFarmerProfileState.value = null
             }
         }
     }

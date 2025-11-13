@@ -41,8 +41,8 @@ fun EditProfileScreen(
 ) {
     val userState by viewModel.userState.collectAsState()
     val farmerProfileState by viewModel.farmerProfileState.collectAsState()
-    val updateUserState by viewModel.updateUserState.collectAsState()
-    val updateFarmerProfileState by viewModel.updateFarmerProfileState.collectAsState()
+    val updateUserStateRaw by viewModel.updateUserState.collectAsState()
+    val updateFarmerProfileStateRaw by viewModel.updateFarmerProfileState.collectAsState()
 
     var fullName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
@@ -115,18 +115,27 @@ fun EditProfileScreen(
     // Track if we've already handled success to prevent multiple navigations
     var hasNavigated by remember { mutableStateOf(false) }
 
-    LaunchedEffect(updateUserState) {
-        if (updateUserState is Resource.Success && !hasNavigated) {
+    LaunchedEffect(updateUserStateRaw) {
+        if (updateUserStateRaw is Resource.Success && !hasNavigated) {
             hasNavigated = true
+            // Brief delay to ensure UI updates before navigation
+            kotlinx.coroutines.delay(300)
             onNavigateBack()
         }
     }
 
-    LaunchedEffect(updateFarmerProfileState) {
-        if (updateFarmerProfileState is Resource.Success && !hasNavigated) {
+    LaunchedEffect(updateFarmerProfileStateRaw) {
+        if (updateFarmerProfileStateRaw is Resource.Success && !hasNavigated) {
             hasNavigated = true
+            // Brief delay to ensure UI updates before navigation
+            kotlinx.coroutines.delay(300)
             onNavigateBack()
         }
+    }
+
+    // Reset navigation flag when screen is revisited
+    LaunchedEffect(Unit) {
+        hasNavigated = false
     }
 
     Scaffold(
@@ -197,9 +206,9 @@ fun EditProfileScreen(
                             )
                             viewModel.updateFarmerProfile(request)
                         },
-                        isSubmitting = updateFarmerProfileState is Resource.Loading,
-                        errorMessage = if (updateFarmerProfileState is Resource.Error) {
-                            updateFarmerProfileState.message ?: "Failed to save profile"
+                        isSubmitting = updateFarmerProfileStateRaw is Resource.Loading,
+                        errorMessage = if (updateFarmerProfileStateRaw is Resource.Error) {
+                            (updateFarmerProfileStateRaw as? Resource.Error)?.message ?: "Failed to save profile"
                         } else null,
                         isEditMode = true
                     )
@@ -256,9 +265,9 @@ fun EditProfileScreen(
                             )
                             viewModel.createFarmerProfile(request)
                         },
-                        isSubmitting = updateFarmerProfileState is Resource.Loading,
-                        errorMessage = if (updateFarmerProfileState is Resource.Error) {
-                            updateFarmerProfileState.message ?: "Failed to save profile"
+                        isSubmitting = updateFarmerProfileStateRaw is Resource.Loading,
+                        errorMessage = if (updateFarmerProfileStateRaw is Resource.Error) {
+                            (updateFarmerProfileStateRaw as? Resource.Error)?.message ?: "Failed to save profile"
                         } else null,
                         isEditMode = false
                     )
@@ -314,9 +323,9 @@ fun EditProfileScreen(
                                 viewModel.updateUser(request)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = updateUserState !is Resource.Loading
+                            enabled = updateUserStateRaw !is Resource.Loading
                         ) {
-                            if (updateUserState is Resource.Loading) {
+                            if (updateUserStateRaw is Resource.Loading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
@@ -327,9 +336,9 @@ fun EditProfileScreen(
                             }
                         }
 
-                        if (updateUserState is Resource.Error) {
+                        if (updateUserStateRaw is Resource.Error) {
                             Text(
-                                text = updateUserState.message ?: "Failed to update profile",
+                                text = (updateUserStateRaw as? Resource.Error)?.message ?: "Failed to update profile",
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall
                             )
