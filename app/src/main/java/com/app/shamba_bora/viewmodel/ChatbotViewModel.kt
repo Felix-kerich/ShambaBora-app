@@ -143,10 +143,29 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
             
             try {
                 val userId = PreferenceManager.getUserId().toString()
+                
+                // If no conversation ID provided, create a new conversation first
+                val activeConversationId = conversationId ?: run {
+                    val createRequest = CreateConversationRequest(
+                        userId = userId,
+                        title = question.take(50) + if (question.length > 50) "..." else ""
+                    )
+                    
+                    val createResponse = chatbotApi.createConversation(createRequest)
+                    if (createResponse.isSuccessful && createResponse.body() != null) {
+                        val newConversation = createResponse.body()!!
+                        _currentConversation.value = Resource.Success(newConversation)
+                        loadConversations() // Refresh list
+                        newConversation.conversationId
+                    } else {
+                        throw Exception("Failed to create conversation")
+                    }
+                }
+                
                 val request = ChatbotQueryRequest(
                     question = question,
                     userId = userId,
-                    conversationId = conversationId,
+                    conversationId = activeConversationId,
                     k = 4
                 )
                 
@@ -205,7 +224,32 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
         }
     }
     
+    fun getFarmAdvice() {
+        viewModelScope.launch {
+            _farmAdvice.value = Resource.Loading()
+            try {
+                val response = mainApi.getFarmAdvice()
+                
+                if (response.isSuccessful && response.body() != null) {
+                    _farmAdvice.value = Resource.Success(response.body()!!)
+                } else {
+                    _farmAdvice.value = Resource.Error("Failed to get farm advice: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                _farmAdvice.value = Resource.Error("Error: ${e.message ?: "Unable to connect"}")
+            }
+        }
+    }
+    
     fun clearQueryResponse() {
         _queryResponse.value = null
+    }
+    
+    fun clearFarmAdvice() {
+        _farmAdvice.value = null
+    }
+    
+    fun clearPendingMessage() {
+        _pendingMessage.value = null
     }
 }

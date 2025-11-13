@@ -24,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.ChatbotConversation
 import com.app.shamba_bora.data.model.ChatbotConversationSummary
 import com.app.shamba_bora.data.model.ChatbotMessage
+import com.app.shamba_bora.data.model.FarmAdviceResponse
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.ChatbotViewModel
 import kotlinx.coroutines.launch
@@ -50,13 +51,17 @@ fun EnhancedChatbotScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     
-    // Auto-scroll when new messages arrive
-    LaunchedEffect(currentConversation) {
+    // Auto-scroll when new messages arrive or pending message changes
+    LaunchedEffect(currentConversation, pendingMessage) {
         if (currentConversation is Resource.Success) {
             val messages = (currentConversation as Resource.Success<ChatbotConversation>).data?.messages
-            if (!messages.isNullOrEmpty()) {
-                listState.animateScrollToItem(messages.size - 1)
+            val totalItems = (messages?.size ?: 0) + if (pendingMessage != null) 1 else 0
+            if (totalItems > 0) {
+                listState.animateScrollToItem(totalItems - 1)
             }
+        } else if (pendingMessage != null) {
+            // If we have a pending message but no conversation yet, scroll to it
+            listState.animateScrollToItem(0)
         }
     }
     
@@ -105,7 +110,8 @@ fun EnhancedChatbotScreen(
                     viewModel.createConversation(title = "New Chat") { newId ->
                         currentConversationId = newId
                     }
-                }
+                },
+                onGetAdvice = { viewModel.getFarmAdvice() }
             )
             
             // Messages
@@ -118,7 +124,11 @@ fun EnhancedChatbotScreen(
                     }
                     is Resource.Success -> {
                         if (conv.data?.messages.isNullOrEmpty()) {
-                            WelcomeScreen()
+                            WelcomeScreen(
+                                onQuestionClick = { question ->
+                                    viewModel.askQuestion(question, currentConversationId)
+                                }
+                            )
                         } else {
                             MessageList(
                                 messages = conv.data!!.messages,
@@ -136,7 +146,11 @@ fun EnhancedChatbotScreen(
                         )
                     }
                     null -> {
-                        WelcomeScreen()
+                        WelcomeScreen(
+                            onQuestionClick = { question ->
+                                viewModel.askQuestion(question, currentConversationId)
+                            }
+                        )
                     }
                 }
             }
@@ -194,35 +208,39 @@ fun EnhancedChatbotScreen(
     }
     
     // Farm Advice Loading Dialog
-    if (farmAdvice is Resource.Loading) {
-        AlertDialog(
-            onDismissRequest = { },
-            title = { Text("Getting Farm Advice") },
-            text = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("Analyzing your farm data...")
-                }
-            },
-            confirmButton = { }
-        )
+    farmAdvice?.let { advice ->
+        if (advice is Resource.Loading) {
+            AlertDialog(
+                onDismissRequest = { },
+                title = { Text("Getting Farm Advice") },
+                text = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text("Analyzing your farm data...")
+                    }
+                },
+                confirmButton = { }
+            )
+        }
     }
     
     // Farm Advice Error Dialog
-    if (farmAdvice is Resource.Error) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearFarmAdvice() },
-            title = { Text("Error") },
-            text = { Text(farmAdvice.message ?: "Failed to get farm advice") },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearFarmAdvice() }) {
-                    Text("OK")
+    farmAdvice?.let { advice ->
+        if (advice is Resource.Error) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearFarmAdvice() },
+                title = { Text("Error") },
+                text = { Text(advice.message ?: "Failed to get farm advice") },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearFarmAdvice() }) {
+                        Text("OK")
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 }
 
@@ -286,7 +304,7 @@ fun ChatHeader(
             
             IconButton(onClick = onGetAdvice) {
                 Icon(
-                    imageVector = Icons.Default.Lightbulb,
+                    imageVector = Icons.Default.Info,
                     contentDescription = "Get Farm Advice",
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
@@ -682,7 +700,7 @@ fun PendingMessageBubble(message: String) {
 }
 
 @Composable
-fun WelcomeScreen() {
+fun WelcomeScreen(onQuestionClick: (String) -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -726,9 +744,18 @@ fun WelcomeScreen() {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SuggestedQuestion("What is the best soil pH for maize?")
-            SuggestedQuestion("When should I plant maize?")
-            SuggestedQuestion("How do I control pests in maize?")
+            SuggestedQuestion(
+                question = "What is the best soil pH for maize?",
+                onClick = { onQuestionClick("What is the best soil pH for maize?") }
+            )
+            SuggestedQuestion(
+                question = "When should I plant maize?",
+                onClick = { onQuestionClick("When should I plant maize?") }
+            )
+            SuggestedQuestion(
+                question = "How do I control pests in maize?",
+                onClick = { onQuestionClick("How do I control pests in maize?") }
+            )
         }
     }
 }
@@ -889,7 +916,7 @@ fun FarmAdviceDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Lightbulb,
+                    Icons.Default.Info,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -938,7 +965,7 @@ fun FarmAdviceDialog(
                         AdviceSection(
                             title = "Fertilizer Recommendations",
                             items = advice.fertilizerRecommendations,
-                            icon = Icons.Default.Eco
+                            icon = Icons.Default.Build
                         )
                     }
                 }
@@ -949,7 +976,7 @@ fun FarmAdviceDialog(
                         AdviceSection(
                             title = "Seed Recommendations",
                             items = advice.seedRecommendations,
-                            icon = Icons.Default.Grass
+                            icon = Icons.Default.Nature
                         )
                     }
                 }
