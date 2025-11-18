@@ -121,5 +121,19 @@ class FarmActivityRepository @Inject constructor(
             Resource.Error(e.message ?: "An error occurred")
         }
     }
+    
+    // ========== DTO Methods ==========
+    suspend fun createActivityWithDTO(activity: com.app.shamba_bora.data.model.FarmActivityRequest): Resource<com.app.shamba_bora.data.model.FarmActivityResponse> {
+        return try {
+            val response = apiService.createActivityWithDTO(activity)
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!)
+            } else {
+                Resource.Error(response.message() ?: "Failed to create activity")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "An error occurred")
+        }
+    }
 }
 

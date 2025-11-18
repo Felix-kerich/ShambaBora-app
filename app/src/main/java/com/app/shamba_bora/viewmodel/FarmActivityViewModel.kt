@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.app.shamba_bora.data.model.ActivityReminder
 import com.app.shamba_bora.data.model.ActivityReminderRequest
 import com.app.shamba_bora.data.model.FarmActivity
+import com.app.shamba_bora.data.model.FarmActivityRequest
+import com.app.shamba_bora.data.model.FarmActivityResponse
+import com.app.shamba_bora.data.model.MaizePatchDTO
 import com.app.shamba_bora.data.network.PageResponse
 import com.app.shamba_bora.data.repository.FarmActivityRepository
+import com.app.shamba_bora.data.repository.PatchRepository
 import com.app.shamba_bora.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +21,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class FarmActivityViewModel @Inject constructor(
-    private val repository: FarmActivityRepository
+    private val repository: FarmActivityRepository,
+    private val patchRepository: PatchRepository
 ) : ViewModel() {
     
     private val _activitiesState = MutableStateFlow<Resource<PageResponse<FarmActivity>>>(Resource.Loading())
@@ -31,6 +36,13 @@ class FarmActivityViewModel @Inject constructor(
     
     private val _remindersState = MutableStateFlow<Resource<List<ActivityReminder>>>(Resource.Loading())
     val remindersState: StateFlow<Resource<List<ActivityReminder>>> = _remindersState.asStateFlow()
+    
+    // initialize as Error (empty) so forms don't show a loading spinner by default
+    private val _createWithDTOState = MutableStateFlow<Resource<FarmActivityResponse>>(Resource.Error("", null))
+    val createWithDTOState: StateFlow<Resource<FarmActivityResponse>> = _createWithDTOState.asStateFlow()
+    
+    private val _patchesState = MutableStateFlow<Resource<List<MaizePatchDTO>>>(Resource.Loading())
+    val patchesState: StateFlow<Resource<List<MaizePatchDTO>>> = _patchesState.asStateFlow()
     
     init {
         loadActivities()
@@ -92,6 +104,24 @@ class FarmActivityViewModel @Inject constructor(
         viewModelScope.launch {
             _remindersState.value = Resource.Loading()
             _remindersState.value = repository.getUpcomingReminders()
+        }
+    }
+    
+    // ========== New DTO Methods ==========
+    fun createActivityWithDTO(activity: FarmActivityRequest) {
+        viewModelScope.launch {
+            _createWithDTOState.value = Resource.Loading()
+            _createWithDTOState.value = repository.createActivityWithDTO(activity)
+            if (_createWithDTOState.value is Resource.Success) {
+                loadActivities()
+            }
+        }
+    }
+    
+    fun loadPatches() {
+        viewModelScope.launch {
+            _patchesState.value = Resource.Loading()
+            _patchesState.value = patchRepository.getPatches()
         }
     }
 }

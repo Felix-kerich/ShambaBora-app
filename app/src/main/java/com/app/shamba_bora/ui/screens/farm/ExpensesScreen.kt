@@ -12,22 +12,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.app.shamba_bora.data.model.FarmExpense
+import com.app.shamba_bora.data.model.*
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
+import com.app.shamba_bora.ui.components.records.*
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.FarmExpenseViewModel
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpensesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToExpenseDetail: (Long) -> Unit = {},
+    onNavigateToCreate: () -> Unit = {},
     viewModel: FarmExpenseViewModel = hiltViewModel()
 ) {
-    var showAddDialog by remember { mutableStateOf(false) }
     val expensesState by viewModel.expensesState.collectAsState()
     val totalExpensesState by viewModel.totalExpensesState.collectAsState()
     
@@ -53,7 +56,7 @@ fun ExpensesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { onNavigateToCreate() },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Expense")
@@ -157,16 +160,6 @@ fun ExpensesScreen(
             }
         }
     }
-    
-    if (showAddDialog) {
-        AddExpenseDialog(
-            onDismiss = { showAddDialog = false },
-            onSave = { expense ->
-                viewModel.createExpense(expense)
-                showAddDialog = false
-            }
-        )
-    }
 }
 
 @Composable
@@ -230,110 +223,126 @@ fun AddExpenseDialog(
     onDismiss: () -> Unit,
     onSave: (FarmExpense) -> Unit
 ) {
-    var category by remember { mutableStateOf("") }
+    var cropType by remember { mutableStateOf("Maize") }
+    var category by remember { mutableStateOf(ExpenseCategory.SEEDS) }
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
-    var expenseDate by remember { mutableStateOf(java.time.LocalDate.now().toString()) }
-    var cropType by remember { mutableStateOf("Maize") }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var expandedCategory by remember { mutableStateOf(false) }
-    
-    val categories = listOf("Seeds", "Fertilizer", "Pesticides", "Labor", "Equipment", "Transport", "Irrigation", "Other")
+    var expenseDate by remember { mutableStateOf(java.time.LocalDate.now()) }
+    var supplier by remember { mutableStateOf("") }
+    var invoiceNumber by remember { mutableStateOf("") }
+    var paymentMethod by remember { mutableStateOf(PaymentMethod.CASH) }
+    var growthStage by remember { mutableStateOf(GrowthStage.PRE_PLANTING) }
+    var notes by remember { mutableStateOf("") }
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Expense") },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
+                FormTextField(
+                    label = "Crop Type",
                     value = cropType,
                     onValueChange = { cropType = it },
-                    label = { Text("Crop Type *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    isRequired = true
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                ExposedDropdownMenuBox(
-                    expanded = expandedCategory,
-                    onExpandedChange = { expandedCategory = it }
-                ) {
-                    OutlinedTextField(
-                        value = category,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Category *") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategory) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedCategory,
-                        onDismissRequest = { expandedCategory = false }
-                    ) {
-                        categories.forEach { cat ->
-                            DropdownMenuItem(
-                                text = { Text(cat) },
-                                onClick = {
-                                    category = cat
-                                    expandedCategory = false
-                                }
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
+
+                FormFieldLabel(text = "Category", isRequired = true)
+                Spacer(modifier = Modifier.height(4.dp))
+                ExpenseCategoryDropdown(
+                    selectedCategory = category,
+                    onCategoryChange = { category = it }
+                )
+
+                FormTextField(
+                    label = "Description",
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description *") },
-                    modifier = Modifier.fillMaxWidth(),
+                    isRequired = true,
                     minLines = 2,
                     maxLines = 3
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
+
+                FormTextField(
+                    label = "Amount (KES)",
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount (KES) *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    placeholder = "0.00",
+                    isRequired = true,
+                    keyboardType = KeyboardType.Decimal
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
-                    value = expenseDate,
-                    onValueChange = { },
-                    label = { Text("Date *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Select Date")
-                        }
-                    },
-                    singleLine = true
+
+                FormDateField(
+                    label = "Expense Date",
+                    selectedDate = expenseDate,
+                    onDateChange = { expenseDate = it }
+                )
+
+                FormTextField(
+                    label = "Supplier",
+                    value = supplier,
+                    onValueChange = { supplier = it },
+                    placeholder = "Vendor name"
+                )
+
+                FormTextField(
+                    label = "Invoice Number",
+                    value = invoiceNumber,
+                    onValueChange = { invoiceNumber = it },
+                    placeholder = "Receipt #"
+                )
+
+                FormFieldLabel(text = "Payment Method", isRequired = false)
+                Spacer(modifier = Modifier.height(4.dp))
+                PaymentMethodDropdown(
+                    selectedMethod = paymentMethod,
+                    onMethodChange = { paymentMethod = it }
+                )
+
+                FormFieldLabel(text = "Growth Stage", isRequired = false)
+                Spacer(modifier = Modifier.height(4.dp))
+                GrowthStageDropdown(
+                    selectedStage = growthStage,
+                    onStageChange = { growthStage = it }
+                )
+
+                FormTextField(
+                    label = "Notes",
+                    value = notes,
+                    onValueChange = { notes = it },
+                    placeholder = "Additional details...",
+                    minLines = 2,
+                    maxLines = 3
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (category.isNotBlank() && description.isNotBlank() && amount.isNotBlank() && cropType.isNotBlank()) {
-                    onSave(
-                        FarmExpense(
-                            cropType = cropType,
-                            category = category,
-                            description = description,
-                            amount = amount.toDoubleOrNull() ?: 0.0,
-                            expenseDate = expenseDate
+            Button(
+                onClick = {
+                    if (description.isNotBlank() && amount.isNotBlank()) {
+                        onSave(
+                            FarmExpense(
+                                cropType = cropType,
+                                category = category.displayName,
+                                description = description,
+                                amount = amount.toDoubleOrNull() ?: 0.0,
+                                expenseDate = expenseDate.toString(),
+                                supplier = supplier.ifEmpty { null },
+                                invoiceNumber = invoiceNumber.ifEmpty { null },
+                                paymentMethod = paymentMethod.name,
+                                growthStage = growthStage.name,
+                                notes = notes.ifEmpty { null }
+                            )
                         )
-                    )
-                }
-            }) {
-                Text("Save")
+                    }
+                },
+                enabled = description.isNotBlank() && amount.isNotBlank()
+            ) {
+                Text("Save Expense")
             }
         },
         dismissButton = {
@@ -342,36 +351,6 @@ fun AddExpenseDialog(
             }
         }
     )
-    
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = System.currentTimeMillis()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val instant = java.time.Instant.ofEpochMilli(millis)
-                            val date = java.time.LocalDate.ofInstant(instant, java.time.ZoneId.systemDefault())
-                            expenseDate = date.toString()
-                        }
-                        showDatePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
 }
 
 @Composable

@@ -12,22 +12,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.app.shamba_bora.data.model.YieldRecord
+import com.app.shamba_bora.data.model.*
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
+import com.app.shamba_bora.ui.components.records.*
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.YieldRecordViewModel
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YieldsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToYieldDetail: (Long) -> Unit = {},
+    onNavigateToCreate: () -> Unit = {},
     viewModel: YieldRecordViewModel = hiltViewModel()
 ) {
-    var showAddDialog by remember { mutableStateOf(false) }
     val yieldsState by viewModel.yieldsState.collectAsState()
     val totalYieldState by viewModel.totalYieldState.collectAsState()
     val totalRevenueState by viewModel.totalRevenueState.collectAsState()
@@ -55,7 +58,7 @@ fun YieldsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { onNavigateToCreate() },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Yield")
@@ -192,16 +195,6 @@ fun YieldsScreen(
             }
         }
     }
-    
-    if (showAddDialog) {
-        AddYieldDialog(
-            onDismiss = { showAddDialog = false },
-            onSave = { yield ->
-                viewModel.createYieldRecord(yield)
-                showAddDialog = false
-            }
-        )
-    }
 }
 
 @Composable
@@ -319,125 +312,197 @@ fun AddYieldDialog(
 ) {
     var cropType by remember { mutableStateOf("") }
     var yieldAmount by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("kg") }
+    var yieldUnit by remember { mutableStateOf(YieldUnit.KG) }
     var marketPrice by remember { mutableStateOf("") }
     var areaHarvested by remember { mutableStateOf("") }
-    var harvestDate by remember { mutableStateOf(java.time.LocalDate.now().toString()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var expandedUnit by remember { mutableStateOf(false) }
+    var areaUnit by remember { mutableStateOf(AreaUnit.ACRES) }
+    var harvestDate by remember { mutableStateOf(LocalDate.now()) }
+    var qualityGrade by remember { mutableStateOf(QualityGrade.GRADE_A) }
+    var notes by remember { mutableStateOf("") }
     
-    val units = listOf("kg", "tons", "bags", "pieces", "liters")
+    // Auto-calculated fields
+    val yieldValue = yieldAmount.toDoubleOrNull() ?: 0.0
+    val areaValue = areaHarvested.toDoubleOrNull() ?: 0.0
+    val priceValue = marketPrice.toDoubleOrNull() ?: 0.0
+    
+    val yieldPerUnit = if (areaValue > 0) yieldValue / areaValue else 0.0
+    val projectedRevenue = yieldValue * priceValue
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Yield Record") },
         text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
-                    value = cropType,
-                    onValueChange = { cropType = it },
-                    label = { Text("Crop Type *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
-                    value = harvestDate,
-                    onValueChange = { },
-                    label = { Text("Harvest Date *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Select Date")
-                        }
-                    },
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = yieldAmount,
-                        onValueChange = { yieldAmount = it },
-                        label = { Text("Yield Amount *") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
+                item {
+                    FormTextField(
+                        label = "Crop Type",
+                        value = cropType,
+                        onValueChange = { cropType = it },
+                        isRequired = true
                     )
-                    
-                    ExposedDropdownMenuBox(
-                        expanded = expandedUnit,
-                        onExpandedChange = { expandedUnit = it },
-                        modifier = Modifier.weight(1f)
+                }
+                
+                item {
+                    FormDateField(
+                        label = "Harvest Date",
+                        selectedDate = harvestDate,
+                        onDateChange = { harvestDate = it }
+                    )
+                }
+                
+                item {
+                    FormFieldLabel(text = "Yield & Unit", isRequired = true)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = unit,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Unit *") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUnit) },
-                            modifier = Modifier.menuAnchor()
+                        FormNumberField(
+                            label = "Amount",
+                            value = yieldAmount,
+                            onValueChange = { yieldAmount = it },
+                            modifier = Modifier.weight(1f)
                         )
-                        ExposedDropdownMenu(
-                            expanded = expandedUnit,
-                            onDismissRequest = { expandedUnit = false }
+                        
+                        Box(modifier = Modifier.weight(0.8f)) {
+                            YieldUnitDropdown(
+                                selectedUnit = yieldUnit,
+                                onUnitChange = { yieldUnit = it }
+                            )
+                        }
+                    }
+                }
+                
+                item {
+                    FormFieldLabel(text = "Area Harvested", isRequired = false)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FormNumberField(
+                            label = "Area",
+                            value = areaHarvested,
+                            onValueChange = { areaHarvested = it },
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        Box(modifier = Modifier.weight(0.8f)) {
+                            AreaUnitDropdown(
+                                selectedUnit = areaUnit,
+                                onUnitChange = { areaUnit = it }
+                            )
+                        }
+                    }
+                }
+                
+                item {
+                    FormNumberField(
+                        label = "Market Price (KES per ${yieldUnit.displayName})",
+                        value = marketPrice,
+                        onValueChange = { marketPrice = it },
+                        placeholder = "0.00",
+                        keyboardType = KeyboardType.Decimal
+                    )
+                }
+                
+                item {
+                    FormFieldLabel(text = "Quality Grade", isRequired = false)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    QualityGradeDropdown(
+                        selectedGrade = qualityGrade,
+                        onGradeChange = { qualityGrade = it }
+                    )
+                }
+                
+                item {
+                    // Auto-calculated metrics
+                    if (areaValue > 0 || priceValue > 0) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            )
                         ) {
-                            units.forEach { u ->
-                                DropdownMenuItem(
-                                    text = { Text(u) },
-                                    onClick = {
-                                        unit = u
-                                        expandedUnit = false
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (areaValue > 0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Yield per ${areaUnit.displayName}:",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Text(
+                                            text = "${String.format("%.2f", yieldPerUnit)} ${yieldUnit.displayName}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     }
-                                )
+                                }
+                                
+                                if (priceValue > 0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Projected Revenue:",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Text(
+                                            text = "KES ${String.format("%.2f", projectedRevenue)}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
                 
-                OutlinedTextField(
-                    value = areaHarvested,
-                    onValueChange = { areaHarvested = it },
-                    label = { Text("Area Harvested (acres)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
-                    value = marketPrice,
-                    onValueChange = { marketPrice = it },
-                    label = { Text("Market Price per ${unit}") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                item {
+                    FormTextField(
+                        label = "Notes",
+                        value = notes,
+                        onValueChange = { notes = it },
+                        placeholder = "Additional yield details...",
+                        minLines = 2,
+                        maxLines = 3
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
-                    val amount = yieldAmount.toDoubleOrNull() ?: 0.0
-                    val price = marketPrice.toDoubleOrNull()
-                    val area = areaHarvested.toDoubleOrNull()
-                    onSave(YieldRecord(
-                        cropType = cropType,
-                        harvestDate = harvestDate,
-                        yieldAmount = amount,
-                        unit = unit,
-                        marketPrice = price,
-                        areaHarvested = area
-                    ))
+                    if (cropType.isNotBlank() && yieldAmount.isNotBlank()) {
+                        onSave(
+                            YieldRecord(
+                                cropType = cropType,
+                                harvestDate = harvestDate.toString(),
+                                yieldAmount = yieldAmount.toDoubleOrNull() ?: 0.0,
+                                unit = yieldUnit.name,
+                                marketPrice = if (marketPrice.isNotEmpty()) marketPrice.toDoubleOrNull() else null,
+                                areaHarvested = if (areaHarvested.isNotEmpty()) areaHarvested.toDoubleOrNull() else null,
+                                qualityGrade = qualityGrade.name,
+                                notes = notes.ifEmpty { null }
+                            )
+                        )
+                    }
                 },
-                enabled = cropType.isNotBlank() && yieldAmount.isNotBlank() && yieldAmount.toDoubleOrNull() != null
+                enabled = cropType.isNotBlank() && yieldAmount.isNotBlank()
             ) {
-                Text("Save")
+                Text("Save Yield Record")
             }
         },
         dismissButton = {
@@ -446,34 +511,4 @@ fun AddYieldDialog(
             }
         }
     )
-    
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = System.currentTimeMillis()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val instant = java.time.Instant.ofEpochMilli(millis)
-                            val date = java.time.LocalDate.ofInstant(instant, java.time.ZoneId.systemDefault())
-                            harvestDate = date.toString()
-                        }
-                        showDatePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
 }

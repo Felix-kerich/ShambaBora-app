@@ -16,11 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.app.shamba_bora.data.model.ActivityReminder
-import com.app.shamba_bora.data.model.ActivityReminderRequest
-import com.app.shamba_bora.data.model.FarmActivity
+import com.app.shamba_bora.data.model.*
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
+import com.app.shamba_bora.ui.components.records.*
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.FarmActivityViewModel
 import java.time.LocalDateTime
@@ -31,9 +30,9 @@ import java.time.format.DateTimeFormatter
 fun ActivitiesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToActivityDetail: (Long) -> Unit = {},
+    onNavigateToCreate: () -> Unit = {},
     viewModel: FarmActivityViewModel = hiltViewModel()
 ) {
-    var showAddDialog by remember { mutableStateOf(false) }
     val activitiesState by viewModel.activitiesState.collectAsState()
     
     LaunchedEffect(Unit) {
@@ -57,7 +56,7 @@ fun ActivitiesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { onNavigateToCreate() },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Activity")
@@ -162,16 +161,6 @@ fun ActivitiesScreen(
                 }
             }
         }
-    }
-    
-    if (showAddDialog) {
-        AddActivityDialog(
-            onDismiss = { showAddDialog = false },
-            onSave = { activity ->
-                viewModel.createActivity(activity)
-                showAddDialog = false
-            }
-        )
     }
 }
 
@@ -336,99 +325,152 @@ fun AddActivityDialog(
     onDismiss: () -> Unit,
     onSave: (FarmActivity) -> Unit
 ) {
-    var activityType by remember { mutableStateOf("") }
+    var activityType by remember { mutableStateOf(ActivityType.PLANTING) }
     var cropType by remember { mutableStateOf("Maize") }
     var description by remember { mutableStateOf("") }
-    var activityDate by remember { mutableStateOf(java.time.LocalDate.now().toString()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var expandedActivityType by remember { mutableStateOf(false) }
-    
-    val activityTypes = listOf("Planting", "Plowing", "Watering", "Fertilizing", "Weeding", "Spraying", "Harvesting", "Pruning", "Other")
+    var activityDate by remember { mutableStateOf(java.time.LocalDate.now()) }
+    var areaSize by remember { mutableStateOf("") }
+    var units by remember { mutableStateOf(AreaUnit.HA) }
+    var weatherConditions by remember { mutableStateOf(WeatherCondition.SUNNY) }
+    var soilConditions by remember { mutableStateOf(SoilCondition.WELL_DRAINED) }
+    var cost by remember { mutableStateOf("") }
+    var laborHours by remember { mutableStateOf("") }
+    var laborCost by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Farm Activity") },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ExposedDropdownMenuBox(
-                    expanded = expandedActivityType,
-                    onExpandedChange = { expandedActivityType = it }
-                ) {
-                    OutlinedTextField(
-                        value = activityType,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Activity Type *") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedActivityType) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedActivityType,
-                        onDismissRequest = { expandedActivityType = false }
-                    ) {
-                        activityTypes.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type) },
-                                onClick = {
-                                    activityType = type
-                                    expandedActivityType = false
-                                }
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
+                FormFieldLabel(text = "Activity Type", isRequired = true)
+                Spacer(modifier = Modifier.height(4.dp))
+                ActivityTypeDropdown(
+                    selectedType = activityType,
+                    onTypeChange = { activityType = it }
+                )
+
+                FormTextField(
+                    label = "Crop Type",
                     value = cropType,
                     onValueChange = { cropType = it },
-                    label = { Text("Crop Type *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    isRequired = true
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
-                    value = activityDate,
-                    onValueChange = { },
-                    label = { Text("Date *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "Select Date")
-                        }
-                    },
-                    singleLine = true
+
+                FormDateField(
+                    label = "Activity Date",
+                    selectedDate = activityDate,
+                    onDateChange = { activityDate = it }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
+
+                FormTextField(
+                    label = "Description",
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    isRequired = true,
+                    minLines = 2,
+                    maxLines = 3
+                )
+
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FormTextField(
+                        label = "Area Size",
+                        value = areaSize,
+                        onValueChange = { areaSize = it },
+                        placeholder = "e.g., 1.5",
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Decimal
+                    )
+                    AreaUnitDropdown(
+                        selectedUnit = units,
+                        onUnitChange = { units = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                WeatherConditionDropdown(
+                    selectedCondition = weatherConditions,
+                    onConditionChange = { weatherConditions = it }
+                )
+
+                SoilConditionDropdown(
+                    selectedCondition = soilConditions,
+                    onConditionChange = { soilConditions = it }
+                )
+
+                FormTextField(
+                    label = "Activity Cost",
+                    value = cost,
+                    onValueChange = { cost = it },
+                    placeholder = "0.00",
+                    keyboardType = KeyboardType.Decimal
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FormTextField(
+                        label = "Labor Hours",
+                        value = laborHours,
+                        onValueChange = { laborHours = it },
+                        placeholder = "Hours",
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Number
+                    )
+                    FormTextField(
+                        label = "Labor Cost",
+                        value = laborCost,
+                        onValueChange = { laborCost = it },
+                        placeholder = "0.00",
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Decimal
+                    )
+                }
+
+                FormTextField(
+                    label = "Notes",
+                    value = notes,
+                    onValueChange = { notes = it },
+                    placeholder = "Additional observations...",
                     minLines = 2,
                     maxLines = 3
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (activityType.isNotBlank() && cropType.isNotBlank()) {
-                    onSave(
-                        FarmActivity(
-                            activityType = activityType,
-                            cropType = cropType,
-                            activityDate = activityDate,
-                            description = description.ifEmpty { null }
+            Button(
+                onClick = {
+                    if (description.isNotBlank()) {
+                        onSave(
+                            FarmActivity(
+                                activityType = activityType.displayName,
+                                cropType = cropType,
+                                activityDate = activityDate.toString(),
+                                description = description,
+                                areaSize = areaSize.toDoubleOrNull(),
+                                units = units.name,
+                                cost = cost.toDoubleOrNull(),
+                                laborHours = laborHours.toIntOrNull(),
+                                laborCost = laborCost.toDoubleOrNull(),
+                                weatherConditions = weatherConditions.name,
+                                soilConditions = soilConditions.name,
+                                notes = notes.ifEmpty { null }
+                            )
                         )
-                    )
-                }
-            }) {
-                Text("Save")
+                    }
+                },
+                enabled = description.isNotBlank()
+            ) {
+                Text("Save Activity")
             }
         },
         dismissButton = {
@@ -437,36 +479,6 @@ fun AddActivityDialog(
             }
         }
     )
-    
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = System.currentTimeMillis()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            val instant = java.time.Instant.ofEpochMilli(millis)
-                            val date = java.time.LocalDate.ofInstant(instant, java.time.ZoneId.systemDefault())
-                            activityDate = date.toString()
-                        }
-                        showDatePicker = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
 }
 
 @Composable

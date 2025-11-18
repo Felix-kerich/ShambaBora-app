@@ -177,6 +177,7 @@ fun RecordsScreen(
     onNavigateToActivities: () -> Unit,
     onNavigateToExpenses: () -> Unit,
     onNavigateToYields: () -> Unit,
+    onNavigateToPatches: () -> Unit,
     activityViewModel: FarmActivityViewModel = hiltViewModel(),
     expenseViewModel: FarmExpenseViewModel = hiltViewModel(),
     yieldViewModel: YieldRecordViewModel = hiltViewModel()
@@ -223,7 +224,7 @@ fun RecordsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Record Keeping") },
+                title = { Text("Record Keeping & Analytics") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -250,6 +251,20 @@ fun RecordsScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+        
+        // Patches Management (new section)
+        item {
+            RecordCategory(
+                title = "My Patches",
+                description = "Manage your farm plots and planting seasons",
+                icon = Icons.Default.Settings,
+                color = MaterialTheme.colorScheme.tertiary,
+                count = 0,
+                onClick = onNavigateToPatches
+            ).let { category ->
+                RecordCategoryCard(category = category)
+            }
         }
         
         // Record Categories

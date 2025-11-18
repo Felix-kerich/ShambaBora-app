@@ -19,6 +19,11 @@ import com.app.shamba_bora.ui.screens.marketplace.ProductDetailScreen
 import com.app.shamba_bora.ui.screens.marketplace.MyProductsScreen
 import com.app.shamba_bora.ui.screens.marketplace.OrderListScreen
 import com.app.shamba_bora.ui.screens.records.RecordsScreen
+import com.app.shamba_bora.ui.screens.records.PatchesScreen
+import com.app.shamba_bora.ui.screens.records.CreatePatchScreenWrapper
+import com.app.shamba_bora.ui.screens.records.CreateActivityScreen
+import com.app.shamba_bora.ui.screens.records.CreateExpenseScreen
+import com.app.shamba_bora.ui.screens.records.CreateYieldScreen
 import com.app.shamba_bora.ui.screens.farm.ActivitiesScreen
 import com.app.shamba_bora.ui.screens.farm.ActivityDetailScreen
 import com.app.shamba_bora.ui.screens.farm.ExpensesScreen
@@ -209,7 +214,8 @@ fun AppNavHost(
             RecordsScreen(
                 onNavigateToActivities = { navController.navigate(Screen.Activities.route) },
                 onNavigateToExpenses = { navController.navigate(Screen.Expenses.route) },
-                onNavigateToYields = { navController.navigate(Screen.Yields.route) }
+                    onNavigateToYields = { navController.navigate(Screen.Yields.route) },
+                    onNavigateToPatches = { navController.navigate(Screen.Patches.route) }
             )
         }
         
@@ -217,13 +223,36 @@ fun AppNavHost(
             EnhancedChatbotScreen()
         }
         
+            // Patches Screen
+            composable(Screen.Patches.route) {
+                PatchesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCreate = { navController.navigate(Screen.CreatePatch.route) }
+                )
+            }
+
+            composable(Screen.CreatePatch.route) {
+                CreatePatchScreenWrapper(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        
         // Record Keeping Screens
         composable(Screen.Activities.route) {
             ActivitiesScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToActivityDetail = { activityId ->
                     navController.navigate(Screen.ActivityDetail.createRoute(activityId))
+                },
+                onNavigateToCreate = {
+                    navController.navigate(Screen.CreateActivity.route)
                 }
+            )
+        }
+        
+        composable(Screen.CreateActivity.route) {
+            com.app.shamba_bora.ui.screens.records.CreateActivityScreenWrapper(
+                onBack = { navController.popBackStack() }
             )
         }
         
@@ -243,7 +272,16 @@ fun AppNavHost(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToExpenseDetail = { expenseId ->
                     navController.navigate(Screen.ExpenseDetail.createRoute(expenseId))
+                },
+                onNavigateToCreate = {
+                    navController.navigate(Screen.CreateExpense.route)
                 }
+            )
+        }
+        
+        composable(Screen.CreateExpense.route) {
+            com.app.shamba_bora.ui.screens.records.CreateExpenseScreenWrapper(
+                onBack = { navController.popBackStack() }
             )
         }
         
@@ -263,7 +301,16 @@ fun AppNavHost(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToYieldDetail = { yieldId ->
                     navController.navigate(Screen.YieldDetail.createRoute(yieldId))
+                },
+                onNavigateToCreate = {
+                    navController.navigate(Screen.CreateYield.route)
                 }
+            )
+        }
+        
+        composable(Screen.CreateYield.route) {
+            com.app.shamba_bora.ui.screens.records.CreateYieldScreenWrapper(
+                onBack = { navController.popBackStack() }
             )
         }
         

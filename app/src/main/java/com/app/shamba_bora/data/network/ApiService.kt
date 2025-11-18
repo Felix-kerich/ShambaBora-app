@@ -37,6 +37,22 @@ interface ApiService {
     @GET("farm-dashboard")
     suspend fun getDashboard(): Response<Dashboard>
     
+    // ========== PATCHES (MAIZE PLOTS) ==========
+    @POST("patches")
+    suspend fun createPatch(@Body patch: MaizePatchDTO): Response<MaizePatchDTO>
+    
+    @GET("patches")
+    suspend fun getPatches(): Response<List<MaizePatchDTO>>
+    
+    @GET("patches/{id}")
+    suspend fun getPatch(@Path("id") id: Long): Response<MaizePatchDTO>
+    
+    @PUT("patches/{id}")
+    suspend fun updatePatch(@Path("id") id: Long, @Body patch: MaizePatchDTO): Response<MaizePatchDTO>
+    
+    @DELETE("patches/{id}")
+    suspend fun deletePatch(@Path("id") id: Long): Response<Unit>
+    
     // ========== FARM ACTIVITIES ==========
     @GET("farm-activities")
     suspend fun getActivities(
@@ -56,6 +72,10 @@ interface ApiService {
     
     @DELETE("farm-activities/{id}")
     suspend fun deleteActivity(@Path("id") id: Long): Response<Unit>
+    
+    // ========== FARM ACTIVITIES (New DTOs) ==========
+    @POST("farm-activities")
+    suspend fun createActivityWithDTO(@Body activity: com.app.shamba_bora.data.model.FarmActivityRequest): Response<com.app.shamba_bora.data.model.FarmActivityResponse>
     
     @GET("farm-activities/{id}/reminders")
     suspend fun getActivityReminders(@Path("id") id: Long): Response<List<ActivityReminder>>
@@ -102,6 +122,10 @@ interface ApiService {
     @GET("farm-expenses/breakdown/growth-stage")
     suspend fun getExpensesByGrowthStage(@Query("cropType") cropType: String): Response<Map<String, Double>>
     
+    // ========== FARM EXPENSES (New DTOs) ==========
+    @POST("farm-expenses")
+    suspend fun createExpenseWithDTO(@Body expense: com.app.shamba_bora.data.model.FarmExpenseRequest): Response<com.app.shamba_bora.data.model.FarmExpenseResponse>
+    
     // ========== YIELD RECORDS ==========
     @GET("yield-records")
     suspend fun getYieldRecords(
@@ -140,6 +164,17 @@ interface ApiService {
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null
     ): Response<List<YieldRecord>>
+    
+    // ========== YIELD RECORDS (New DTOs) ==========
+    @POST("yield-records")
+    suspend fun createYieldRecordWithDTO(@Body yield: com.app.shamba_bora.data.model.YieldRecordRequest): Response<com.app.shamba_bora.data.model.YieldRecordResponse>
+    
+    // ========== FARM ANALYTICS ==========
+    @GET("farm-analytics/patches/{patchId}/summary")
+    suspend fun getPatchSummary(@Path("patchId") patchId: Long): Response<PatchSummaryDTO>
+    
+    @POST("farm-analytics/patches/compare")
+    suspend fun comparePatches(@Body patchIds: List<Long>): Response<PatchComparisonDTO>
     
     // ========== WEATHER ==========
     @GET("weather/current")

@@ -22,6 +22,7 @@ import com.app.shamba_bora.navigation.Screen
 import com.app.shamba_bora.ui.components.DrawerMenu
 import com.app.shamba_bora.ui.theme.Shamba_BoraTheme
 import com.app.shamba_bora.utils.PreferenceManager
+import com.app.shamba_bora.data.network.TokenExpirationManager
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -59,6 +60,17 @@ fun MainScreen() {
     val coroutineScope = rememberCoroutineScope()
     var showBottomNav by remember { mutableStateOf(true) }
     var showTopBar by remember { mutableStateOf(true) }
+    
+    // Listen for token expiration events
+    LaunchedEffect(Unit) {
+        TokenExpirationManager.tokenExpiredEvent.collect {
+            // Token has expired, navigate to login and clear navigation stack
+            navController.navigate(Screen.Login.route) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
     
     // Show bottom nav and top bar only on main screens
     val mainScreens = listOf(

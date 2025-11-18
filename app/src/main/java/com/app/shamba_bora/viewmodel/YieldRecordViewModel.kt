@@ -3,8 +3,12 @@ package com.app.shamba_bora.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.shamba_bora.data.model.YieldRecord
+import com.app.shamba_bora.data.model.YieldRecordRequest
+import com.app.shamba_bora.data.model.YieldRecordResponse
+import com.app.shamba_bora.data.model.MaizePatchDTO
 import com.app.shamba_bora.data.network.PageResponse
 import com.app.shamba_bora.data.repository.YieldRecordRepository
+import com.app.shamba_bora.data.repository.PatchRepository
 import com.app.shamba_bora.utils.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +19,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class YieldRecordViewModel @Inject constructor(
-    private val repository: YieldRecordRepository
+    private val repository: YieldRecordRepository,
+    private val patchRepository: PatchRepository
 ) : ViewModel() {
     
     private val _yieldsState = MutableStateFlow<Resource<PageResponse<YieldRecord>>>(Resource.Loading())
@@ -29,6 +34,13 @@ class YieldRecordViewModel @Inject constructor(
     
     private val _totalRevenueState = MutableStateFlow<Resource<Double>>(Resource.Loading())
     val totalRevenueState: StateFlow<Resource<Double>> = _totalRevenueState.asStateFlow()
+    
+    // initialize as Error (empty) so forms don't show a loading spinner by default
+    private val _createWithDTOState = MutableStateFlow<Resource<YieldRecordResponse>>(Resource.Error("", null))
+    val createWithDTOState: StateFlow<Resource<YieldRecordResponse>> = _createWithDTOState.asStateFlow()
+    
+    private val _patchesState = MutableStateFlow<Resource<List<MaizePatchDTO>>>(Resource.Loading())
+    val patchesState: StateFlow<Resource<List<MaizePatchDTO>>> = _patchesState.asStateFlow()
     
     init {
         loadYieldRecords()
@@ -94,6 +106,26 @@ class YieldRecordViewModel @Inject constructor(
     fun loadYieldTrends(cropType: String, startDate: String? = null, endDate: String? = null) {
         viewModelScope.launch {
             repository.getYieldTrends(cropType, startDate, endDate)
+        }
+    }
+    
+    // ========== New DTO Methods ==========
+    fun createYieldRecordWithDTO(yield: YieldRecordRequest) {
+        viewModelScope.launch {
+            _createWithDTOState.value = Resource.Loading()
+            _createWithDTOState.value = repository.createYieldRecordWithDTO(yield)
+            if (_createWithDTOState.value is Resource.Success) {
+                loadYieldRecords()
+                loadTotalYield()
+                loadTotalRevenue()
+            }
+        }
+    }
+    
+    fun loadPatches() {
+        viewModelScope.launch {
+            _patchesState.value = Resource.Loading()
+            _patchesState.value = patchRepository.getPatches()
         }
     }
 }

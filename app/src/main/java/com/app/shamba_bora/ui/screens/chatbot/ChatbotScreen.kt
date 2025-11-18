@@ -21,11 +21,17 @@ import kotlinx.coroutines.launch
 import com.app.shamba_bora.data.model.ChatbotQueryRequest
 import com.app.shamba_bora.data.model.ChatbotQueryResponse
 import com.app.shamba_bora.data.network.ApiService
+import com.app.shamba_bora.data.network.LocalDateAdapter
+import com.app.shamba_bora.data.network.LocalDateTimeAdapter
 import com.app.shamba_bora.utils.Constants
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 
 @Composable
@@ -136,6 +142,13 @@ fun ChatbotScreen() {
                             listState.animateScrollToItem(messages.size - 1)
                             
                             try {
+                                // Create Gson instance with date adapters for proper date serialization
+                                val gson = GsonBuilder()
+                                    .registerTypeAdapter(LocalDate::class.java, LocalDateAdapter())
+                                    .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeAdapter())
+                                    .setLenient()
+                                    .create()
+                                
                                 // Create chatbot API service
                                 val loggingInterceptor = HttpLoggingInterceptor().apply {
                                     level = HttpLoggingInterceptor.Level.BODY
@@ -150,7 +163,7 @@ fun ChatbotScreen() {
                                 val retrofit = Retrofit.Builder()
                                     .baseUrl(Constants.CHATBOT_BASE_URL)
                                     .client(okHttpClient)
-                                    .addConverterFactory(GsonConverterFactory.create())
+                                    .addConverterFactory(GsonConverterFactory.create(gson))
                                     .build()
                                     
                                 val chatbotApi = retrofit.create(ApiService::class.java)
