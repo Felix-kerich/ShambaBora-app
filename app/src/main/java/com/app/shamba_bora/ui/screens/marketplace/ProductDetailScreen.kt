@@ -283,7 +283,7 @@ fun ProductDetailScreen(
                                 Button(
                                     onClick = {
                                         val qty = orderQuantity.toIntOrNull() ?: 1
-                                        if (qty > 0 && qty <= (product.quantity ?: 0)) {
+                                        if (qty > 0) {
                                             showOrderDialog = false
                                             onNavigateToCheckout(product, qty)
                                         }

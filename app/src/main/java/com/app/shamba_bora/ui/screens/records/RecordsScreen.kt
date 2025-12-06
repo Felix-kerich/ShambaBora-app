@@ -12,9 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.app.shamba_bora.data.model.FarmAdviceResponse
+import com.app.shamba_bora.ui.screens.chatbot.EnhancedFarmAdviceDialog
 import com.app.shamba_bora.utils.Resource
+import com.app.shamba_bora.viewmodel.ChatbotViewModel
 import com.app.shamba_bora.viewmodel.FarmActivityViewModel
 import com.app.shamba_bora.viewmodel.FarmExpenseViewModel
+import com.app.shamba_bora.viewmodel.PatchViewModel
 import com.app.shamba_bora.viewmodel.YieldRecordViewModel
 
 data class RecordCategory(
@@ -180,13 +184,23 @@ fun RecordsScreen(
     onNavigateToPatches: () -> Unit,
     activityViewModel: FarmActivityViewModel = hiltViewModel(),
     expenseViewModel: FarmExpenseViewModel = hiltViewModel(),
-    yieldViewModel: YieldRecordViewModel = hiltViewModel()
+    yieldViewModel: YieldRecordViewModel = hiltViewModel(),
+    patchViewModel: PatchViewModel = hiltViewModel(),
+    chatbotViewModel: ChatbotViewModel = hiltViewModel()
 ) {
+    var showAdviceDialog by remember { mutableStateOf(false) }
+    var showAdviceErrorDialog by remember { mutableStateOf(false) }
+    var showAdviceLoadingDialog by remember { mutableStateOf(false) }
+    var farmAdviceReady by remember { mutableStateOf<FarmAdviceResponse?>(null) }
+    var showAdviceReadyDialog by remember { mutableStateOf(false) }
+    
     val activitiesState by activityViewModel.activitiesState.collectAsState()
     val expensesState by expenseViewModel.expensesState.collectAsState()
     val yieldsState by yieldViewModel.yieldsState.collectAsState()
     val totalExpensesState by expenseViewModel.totalExpensesState.collectAsState()
     val totalRevenueState by yieldViewModel.totalRevenueState.collectAsState()
+    val patchesState by patchViewModel.patchesState.collectAsState()
+    val farmAdviceState by chatbotViewModel.farmAdvice.collectAsState()
     
     LaunchedEffect(Unit) {
         activityViewModel.loadActivities()
@@ -194,6 +208,34 @@ fun RecordsScreen(
         expenseViewModel.loadTotalExpenses()
         yieldViewModel.loadYieldRecords()
         yieldViewModel.loadTotalRevenue()
+        patchViewModel.loadPatches()
+    }
+    
+    // Handle farm advice state changes - show dialog immediately when success
+    LaunchedEffect(farmAdviceState) {
+        when (farmAdviceState) {
+            is Resource.Loading -> {
+                showAdviceLoadingDialog = true
+                showAdviceErrorDialog = false
+                showAdviceReadyDialog = false
+            }
+            is Resource.Success -> {
+                showAdviceLoadingDialog = false
+                showAdviceErrorDialog = false
+                farmAdviceReady = (farmAdviceState as Resource.Success<FarmAdviceResponse>).data
+                showAdviceReadyDialog = true
+            }
+            is Resource.Error -> {
+                showAdviceLoadingDialog = false
+                showAdviceErrorDialog = true
+                showAdviceReadyDialog = false
+            }
+            else -> {
+                showAdviceLoadingDialog = false
+                showAdviceErrorDialog = false
+                showAdviceReadyDialog = false
+            }
+        }
     }
     
     val activitiesCount = when (val state = activitiesState) {
@@ -208,6 +250,11 @@ fun RecordsScreen(
     
     val yieldsCount = when (val state = yieldsState) {
         is Resource.Success -> state.data?.totalElements ?: 0
+        else -> 0
+    }
+    
+    val patchesCount = when (val state = patchesState) {
+        is Resource.Success -> state.data?.size ?: 0
         else -> 0
     }
     
@@ -228,7 +275,16 @@ fun RecordsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    IconButton(onClick = { chatbotViewModel.getFarmAdvice() }) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Get Farm Advice",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -260,7 +316,7 @@ fun RecordsScreen(
                 description = "Manage your farm plots and planting seasons",
                 icon = Icons.Default.Settings,
                 color = MaterialTheme.colorScheme.tertiary,
-                count = 0,
+                count = patchesCount,
                 onClick = onNavigateToPatches
             ).let { category ->
                 RecordCategoryCard(category = category)
@@ -337,8 +393,179 @@ fun RecordsScreen(
             }
         }
     }
+    }
+    
+    // Farm Advice Ready Dialog - using the same dialog from chatbot
+    if (showAdviceReadyDialog && farmAdviceReady != null) {
+        EnhancedFarmAdviceDialog(
+            advice = farmAdviceReady!!,
+            onDismiss = {
+                showAdviceReadyDialog = false
+                chatbotViewModel.clearFarmAdvice()
+            }
+        )
+    }
+    
+    // Farm Advice Loading Dialog - with "Please Wait" message
+    farmAdviceState?.let { advice ->
+        if (advice is Resource.Loading) {
+            AlertDialog(
+                onDismissRequest = {
+                    // Allow user to close dialog and continue processing in background
+                    chatbotViewModel.startFarmAdviceBackgroundPolling()
+                    showAdviceLoadingDialog = false
+                },
+                title = { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Getting Farm Advice")
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        advice.message?.let { msg ->
+                            Text(
+                                msg,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } ?: run {
+                            Text(
+                                "Analyzing your farm records...",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        
+                        // Show what we're doing
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            ProgressStep(text = "Retrieving farm data", isActive = true)
+                            ProgressStep(text = "Analyzing conditions", isActive = true)
+                            ProgressStep(text = "Generating recommendations", isActive = true)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            chatbotViewModel.startFarmAdviceBackgroundPolling()
+                            showAdviceLoadingDialog = false
+                        }
+                    ) {
+                        Text("Processing in background")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { /* Keep processing */ }) {
+                        Text("Keep waiting")
+                    }
+                }
+            )
+        }
+    }
+    
+    // Farm Advice Error Dialog
+    if (showAdviceErrorDialog && farmAdviceState is Resource.Error) {
+        val error = (farmAdviceState as Resource.Error)
+        AlertDialog(
+            onDismissRequest = { 
+                showAdviceErrorDialog = false
+                chatbotViewModel.clearFarmAdvice()
+            },
+            title = { Text("Farm Advice") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        error.message ?: "Failed to get farm advice",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    // Show helpful suggestions for common errors
+                    when {
+                        error.message?.contains("Access denied", ignoreCase = true) == true || 
+                        error.message?.contains("Authentication", ignoreCase = true) == true -> {
+                            Text(
+                                "Tip: Make sure you're logged in with a valid account. You may need to log out and log back in to refresh your session.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        error.message?.contains("Farm analytics data not found", ignoreCase = true) == true -> {
+                            Text(
+                                "Tip: Complete your farm profile by adding farm details, soil information, and crop data. This helps the AI provide better advice.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        error.message?.contains("Server error", ignoreCase = true) == true -> {
+                            Text(
+                                "Tip: The server is experiencing issues. Please try again in a few moments.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        error.message?.contains("taking longer", ignoreCase = true) == true -> {
+                            Text(
+                                "Your farm advice is being processed in the background. You'll be notified when it's ready!",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { 
+                    showAdviceErrorDialog = false
+                    chatbotViewModel.clearFarmAdvice()
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showAdviceErrorDialog = false
+                    chatbotViewModel.clearFarmAdvice()
+                    chatbotViewModel.getFarmAdvice() // Retry
+                }) {
+                    Text("Retry")
+                }
+            }
+        )
+    }
 }
 
+@Composable
+fun ProgressStep(text: String, isActive: Boolean = false) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (isActive) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 1.5.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        } else {
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            )
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+    }
 }
 
 

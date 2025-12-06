@@ -23,7 +23,7 @@ fun DashboardCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
+            .height(110.dp)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = 0.1f)

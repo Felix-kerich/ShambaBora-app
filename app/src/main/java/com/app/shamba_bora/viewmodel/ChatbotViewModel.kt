@@ -37,11 +37,17 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
     private val _currentConversation = MutableStateFlow<Resource<ChatbotConversation>?>(null)
     val currentConversation: StateFlow<Resource<ChatbotConversation>?> = _currentConversation.asStateFlow()
     
+    private val _currentConversationId = MutableStateFlow<String?>(null)
+    val currentConversationId: StateFlow<String?> = _currentConversationId.asStateFlow()
+    
     private val _queryResponse = MutableStateFlow<Resource<ChatbotQueryResponse>?>(null)
     val queryResponse: StateFlow<Resource<ChatbotQueryResponse>?> = _queryResponse.asStateFlow()
     
     private val _farmAdvice = MutableStateFlow<Resource<FarmAdviceResponse>?>(null)
     val farmAdvice: StateFlow<Resource<FarmAdviceResponse>?> = _farmAdvice.asStateFlow()
+    
+    private val _chatHistory = MutableStateFlow<Resource<List<ChatHistory>>>(Resource.Loading())
+    val chatHistory: StateFlow<Resource<List<ChatHistory>>> = _chatHistory.asStateFlow()
     
     private val _farmAdviceBackgroundLoading = MutableStateFlow(false)
     val farmAdviceBackgroundLoading: StateFlow<Boolean> = _farmAdviceBackgroundLoading.asStateFlow()
@@ -57,6 +63,12 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
     private val _pendingMessage = MutableStateFlow<String?>(null)
     val pendingMessage: StateFlow<String?> = _pendingMessage.asStateFlow()
     
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    
+    private var currentSessionId: String = ""
+    private var currentFarmerId: Long = 0
+    
     private val chatbotApi: ApiService
     private val mainApi: ApiService
     
@@ -65,7 +77,6 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
         val gson = GsonBuilder()
             .registerTypeAdapter(LocalDate::class.java, LocalDateAdapter())
             .registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeAdapter())
-            .setLenient()
             .create()
         
         // Create dedicated Retrofit instance for chatbot service
@@ -93,7 +104,7 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
         val authInterceptor = AuthInterceptor()
         val mainOkHttpClient = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .addInterceptor(authInterceptor)  // ← Add auth interceptor to include token
+            .addInterceptor(authInterceptor)
             .connectTimeout(180, TimeUnit.SECONDS)
             .readTimeout(180, TimeUnit.SECONDS)
             .writeTimeout(180, TimeUnit.SECONDS)
@@ -107,126 +118,254 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
         
         mainApi = mainRetrofit.create(ApiService::class.java)
         
+        // Initialize session
+        initializeSession()
+        
         // Load conversations on init
         loadConversations()
     }
     
+    private fun initializeSession() {
+        currentFarmerId = PreferenceManager.getUserId().toLong()
+        currentSessionId = "session-${System.currentTimeMillis()}-${(0..9999).random()}"
+    }
+    
+    // ============= CONVERSATION MANAGEMENT =============
+    
+    /**
+     * Load all conversations for the current farmer
+     */
     fun loadConversations() {
         viewModelScope.launch {
             _conversations.value = Resource.Loading()
             try {
-                val userId = PreferenceManager.getUserId().toString()
-                val response = chatbotApi.getUserConversations(userId, limit = 50, offset = 0)
+                val farmerId = PreferenceManager.getUserId().toLong()
+                val response = chatbotApi.getFarmerConversations(farmerId, limit = 50, offset = 0)
                 
                 if (response.isSuccessful && response.body() != null) {
-                    _conversations.value = Resource.Success(response.body()!!)
+                    val wrapper = response.body()!!
+                    val convList = wrapper.getConversations()
+                    _conversations.value = Resource.Success(convList)
+                    Log.d("ChatbotViewModel", "Loaded ${convList.size} conversations")
                 } else {
                     _conversations.value = Resource.Error("Failed to load conversations: ${response.message()}")
                 }
             } catch (e: Exception) {
                 _conversations.value = Resource.Error("Error: ${e.message ?: "Unknown error"}")
+                Log.e("ChatbotViewModel", "Exception loading conversations", e)
             }
         }
     }
     
-    fun createConversation(title: String? = null, onSuccess: (String) -> Unit = {}) {
+    /**
+     * Create a new conversation
+     */
+    fun createNewConversation(title: String? = null) {
         viewModelScope.launch {
             try {
-                val userId = PreferenceManager.getUserId().toString()
-                val request = CreateConversationRequest(
-                    userId = userId,
-                    title = title
-                )
+                _isLoading.value = true
+                val farmerId = PreferenceManager.getUserId().toLong()
                 
-                val response = chatbotApi.createConversation(request)
+                // Create conversation on backend
+                val response = chatbotApi.createConversation(
+                    CreateConversationRequest(
+                        title = title ?: "Conversation ${System.currentTimeMillis()}",
+                        description = null,
+                        farmerId = farmerId
+                    )
+                )
                 
                 if (response.isSuccessful && response.body() != null) {
                     val conversation = response.body()!!
+                    _currentConversationId.value = conversation.conversationId
                     _currentConversation.value = Resource.Success(conversation)
-                    loadConversations() // Refresh list
-                    onSuccess(conversation.conversationId)
+                    
+                    // Refresh conversation list
+                    loadConversations()
+                    
+                    Log.d("ChatbotViewModel", "Created conversation: ${conversation.conversationId}")
                 } else {
                     _currentConversation.value = Resource.Error("Failed to create conversation")
+                    Log.e("ChatbotViewModel", "Failed to create: ${response.message()}")
                 }
             } catch (e: Exception) {
                 _currentConversation.value = Resource.Error("Error: ${e.message}")
+                Log.e("ChatbotViewModel", "Exception creating conversation", e)
+            } finally {
+                _isLoading.value = false
             }
         }
     }
     
+    /**
+     * Load a specific conversation with all its messages
+     */
     fun loadConversation(conversationId: String) {
         viewModelScope.launch {
             _currentConversation.value = Resource.Loading()
+            _currentConversationId.value = conversationId
             try {
                 val response = chatbotApi.getConversation(conversationId)
                 
                 if (response.isSuccessful && response.body() != null) {
-                    _currentConversation.value = Resource.Success(response.body()!!)
+                    val detailsResponse = response.body()!!
+                    
+                    // Convert backend response to ChatbotConversation format
+                    if (detailsResponse.data != null && detailsResponse.data.session != null) {
+                        val session = detailsResponse.data.session
+                        val messages = detailsResponse.data.messages?.map { msg ->
+                            // Convert ConversationMessage to ChatbotMessage format
+                            ChatbotMessage(
+                                role = "user",
+                                content = msg.userMessage,
+                                timestamp = msg.createdAt ?: "",
+                                contexts = null
+                            )
+                        }?.toMutableList() ?: mutableListOf()
+                        
+                        // Also add AI responses as separate messages
+                        detailsResponse.data.messages?.forEach { msg ->
+                            messages.add(
+                                ChatbotMessage(
+                                    role = "assistant",
+                                    content = msg.aiResponse,
+                                    timestamp = msg.createdAt ?: "",
+                                    contexts = null
+                                )
+                            )
+                        }
+                        
+                        val conversation = ChatbotConversation(
+                            conversationId = session.conversationId,
+                            userId = session.farmerId?.toString() ?: "",
+                            title = session.title,
+                            messages = messages,
+                            createdAt = session.createdAt,
+                            updatedAt = session.updatedAt,
+                            metadata = null
+                        )
+                        
+                        _currentConversation.value = Resource.Success(conversation)
+                        val messageCount = messages.size
+                        Log.d("ChatbotViewModel", "Loaded conversation with $messageCount messages")
+                    } else {
+                        _currentConversation.value = Resource.Error("No conversation data received")
+                        Log.e("ChatbotViewModel", "Empty response data")
+                    }
                 } else {
-                    _currentConversation.value = Resource.Error("Failed to load conversation")
+                    _currentConversation.value = Resource.Error("Failed to load conversation: ${response.message()}")
+                    Log.e("ChatbotViewModel", "Failed to load: ${response.message()}")
                 }
             } catch (e: Exception) {
                 _currentConversation.value = Resource.Error("Error: ${e.message}")
+                Log.e("ChatbotViewModel", "Exception loading conversation", e)
             }
         }
     }
     
-    fun askQuestion(question: String, conversationId: String? = null) {
+    /**
+     * Start a new conversation (clears current state)
+     */
+    fun startNewConversation() {
+        Log.d("ChatbotViewModel", "startNewConversation() called - clearing previous conversation")
+        _currentConversationId.value = null
+        _currentConversation.value = null
+        _queryResponse.value = null
+        _pendingMessage.value = null
+        createNewConversation()
+    }
+    
+    // ============= QUERY & MESSAGING =============
+    
+    /**
+     * Ask a question in the current or new conversation
+     */
+    fun askQuestion(question: String) {
         viewModelScope.launch {
-            // Set pending message to show immediately in UI
             _pendingMessage.value = question
             _queryResponse.value = Resource.Loading()
             
             try {
-                val userId = PreferenceManager.getUserId().toString()
+                val farmerId = PreferenceManager.getUserId().toLong()
+                val currentConvId = _currentConversationId.value
                 
-                // If no conversation ID provided, create a new conversation first
-                val activeConversationId = conversationId ?: run {
-                    val createRequest = CreateConversationRequest(
-                        userId = userId,
-                        title = question.take(50) + if (question.length > 50) "..." else ""
+                Log.d("ChatbotViewModel", "askQuestion() - Current conversation ID: $currentConvId")
+                
+                // If no conversation, create one first
+                val conversationId = if (currentConvId == null) {
+                    Log.d("ChatbotViewModel", "No active conversation - creating new one")
+                    val farmerId = PreferenceManager.getUserId().toLong()
+                    val createResponse = chatbotApi.createConversation(
+                        CreateConversationRequest(
+                            title = "Chat ${System.currentTimeMillis()}",
+                            description = null,
+                            farmerId = farmerId
+                        )
                     )
                     
-                    val createResponse = chatbotApi.createConversation(createRequest)
                     if (createResponse.isSuccessful && createResponse.body() != null) {
-                        val newConversation = createResponse.body()!!
-                        // Set current conversation IMMEDIATELY with just the structure
-                        // This shows the conversation screen right away
-                        _currentConversation.value = Resource.Success(
-                            newConversation.copy(messages = listOf())  // Empty messages initially
-                        )
-                        loadConversations() // Refresh list
-                        newConversation.conversationId
+                        val newConv = createResponse.body()!!
+                        _currentConversationId.value = newConv.conversationId
+                        _currentConversation.value = Resource.Success(newConv)
+                        Log.d("ChatbotViewModel", "New conversation created: ${newConv.conversationId}")
+                        newConv.conversationId
                     } else {
-                        throw Exception("Failed to create conversation")
+                        val errorBody = createResponse.errorBody()?.string() ?: "Empty response"
+                        Log.e("ChatbotViewModel", "Create conversation failed: ${createResponse.code()} - ${createResponse.message()}")
+                        Log.e("ChatbotViewModel", "Error body: $errorBody")
+                        throw Exception("Failed to create conversation: ${createResponse.code()} - ${createResponse.message()}")
                     }
+                } else {
+                    Log.d("ChatbotViewModel", "Reusing existing conversation: $currentConvId")
+                    currentConvId
                 }
                 
+                // Send query with conversation ID
                 val request = ChatbotQueryRequest(
                     question = question,
-                    userId = userId,
-                    conversationId = activeConversationId,
-                    k = 4
+                    k = 4,
+                    conversationId = conversationId,
+                    userId = PreferenceManager.getUserId().toString(),
+                    farmerId = farmerId,
+                    includeFarmerData = true,
+                    sessionId = currentSessionId
                 )
                 
-                val response = chatbotApi.queryChatbot(request)
+                Log.d("ChatbotViewModel", "Sending question with conversation ID: $conversationId")
+                val response = chatbotApi.queryFarmingQuestion(request)
                 
                 if (response.isSuccessful && response.body() != null) {
                     val result = response.body()!!
                     _queryResponse.value = Resource.Success(result)
-                    
-                    // Clear pending message
                     _pendingMessage.value = null
                     
-                    // Reload the conversation to get updated messages
-                    loadConversation(result.conversationId)
+                    // Ensure conversation ID is persisted from response if different
+                    if (result.conversationId.isNotEmpty()) {
+                        _currentConversationId.value = result.conversationId
+                        Log.d("ChatbotViewModel", "Updated conversation ID from response: ${result.conversationId}")
+                    }
+                    
+                    // Reload conversation to get the new message
+                    loadConversation(conversationId)
+                    loadConversations() // Refresh list
+                    
+                    Log.d("ChatbotViewModel", "Question answered, conversation: $conversationId")
                 } else {
-                    _queryResponse.value = Resource.Error("Failed to get answer: ${response.message()}")
+                    val errorMsg = response.errorBody()?.string() ?: response.message() ?: "Unknown error"
+                    _queryResponse.value = Resource.Error("Failed: ${response.code()} - ${response.message()}")
                     _pendingMessage.value = null
+                    Log.e("ChatbotViewModel", "Query failed: $errorMsg")
                 }
             } catch (e: Exception) {
-                _queryResponse.value = Resource.Error("Error: ${e.message ?: "Unable to connect"}")
+                val errorMsg = when {
+                    e is java.net.SocketTimeoutException -> "Request timed out. Please try again."
+                    e is java.io.IOException && e.message?.contains("timeout", ignoreCase = true) == true -> 
+                        "Connection timeout. Processing in background..."
+                    else -> e.message ?: "Unknown error"
+                }
+                _queryResponse.value = Resource.Error(errorMsg)
                 _pendingMessage.value = null
+                Log.e("ChatbotViewModel", "Exception asking question", e)
             }
         }
     }
@@ -287,6 +426,7 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     _farmAdvice.value = Resource.Success(response.body()!!)
                     _showFarmAdviceNotification.value = false
+                    Log.d("ChatbotViewModel", "Farm advice retrieved in ${elapsedTime}ms")
                 } else {
                     val errorMsg = when (response.code()) {
                         403 -> "Access denied. Please ensure you're logged in with proper permissions."

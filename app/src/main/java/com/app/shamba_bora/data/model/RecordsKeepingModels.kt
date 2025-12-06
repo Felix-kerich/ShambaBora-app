@@ -22,7 +22,10 @@ data class MaizePatchDTO(
     val location: String = "",
     val notes: String = "",
     val createdAt: LocalDateTime? = null,
-    val updatedAt: LocalDateTime? = null
+    val updatedAt: LocalDateTime? = null,
+    val activities: List<FarmActivityResponse>? = null,
+    val yields: List<YieldRecordResponse>? = null,
+    val expenses: List<FarmExpenseResponse>? = null
 ) {
     fun isValid(): Boolean {
         return year > 0 && 
@@ -186,6 +189,7 @@ data class YieldRecordResponse(
     val yieldAmount: Double = 0.0,
     val unit: String = "kg",
     val areaHarvested: Double? = null,
+    val yieldPerUnit: Double = 0.0,
     val marketPrice: Double? = null,
     val qualityGrade: String = "GRADE_A",
     val storageLocation: String = "",

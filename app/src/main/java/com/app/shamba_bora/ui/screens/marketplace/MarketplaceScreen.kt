@@ -24,7 +24,7 @@ import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.MarketplaceViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MarketplaceScreen(
     onNavigateToProductDetails: (Long) -> Unit,
@@ -35,17 +35,11 @@ fun MarketplaceScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
+    var filtersExpanded by remember { mutableStateOf(false) }
     val productsState by viewModel.productsState.collectAsState()
     
     LaunchedEffect(Unit) {
         viewModel.loadProducts()
-    }
-    
-    LaunchedEffect(searchQuery, selectedCategory) {
-        if (searchQuery.length > 2 || searchQuery.isEmpty()) {
-            val query = if (selectedCategory != "All") selectedCategory else searchQuery.ifEmpty { null }
-            viewModel.loadProducts(query)
-        }
     }
     
     Scaffold(
@@ -80,36 +74,120 @@ fun MarketplaceScreen(
             Spacer(modifier = Modifier.height(8.dp))
             // Search Bar
             OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search products...") },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Search")
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                value = searchQuery,
+                onValueChange = { newValue ->
+                    searchQuery = newValue
+                    if (newValue.length > 2 || newValue.isEmpty()) {
+                        val query = newValue.ifBlank { null }
+                        viewModel.loadProducts(query)
+                        selectedCategory = "All"
                     }
-                }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp)
-        )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search products...") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            searchQuery = ""
+                            viewModel.loadProducts()
+                            selectedCategory = "All"
+                        }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Categories
-        Row(
+        // Filters section
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
         ) {
-            CategoryChip("All", true) { viewModel.loadProducts() }
-            CategoryChip("Seeds", false) { viewModel.loadProducts("Seeds") }
-            CategoryChip("Fertilizer", false) { viewModel.loadProducts("Fertilizer") }
-            CategoryChip("Equipment", false) { viewModel.loadProducts("Equipment") }
-            CategoryChip("Crops", false) { viewModel.loadProducts("Crops") }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Filters",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    IconButton(onClick = { filtersExpanded = !filtersExpanded }) {
+                        Icon(
+                            imageVector = if (filtersExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (filtersExpanded) "Collapse filters" else "Expand filters"
+                        )
+                    }
+                }
+
+                if (filtersExpanded) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        CategoryChip(
+                            label = "All",
+                            selected = selectedCategory == "All",
+                            onClick = {
+                                selectedCategory = "All"
+                                viewModel.loadProducts(searchQuery.ifBlank { null })
+                            }
+                        )
+                        CategoryChip(
+                            label = "Seeds",
+                            selected = selectedCategory == "Seeds",
+                            onClick = {
+                                selectedCategory = "Seeds"
+                                searchQuery = ""
+                                viewModel.loadProducts("Seeds")
+                            }
+                        )
+                        CategoryChip(
+                            label = "Fertilizer",
+                            selected = selectedCategory == "Fertilizer",
+                            onClick = {
+                                selectedCategory = "Fertilizer"
+                                searchQuery = ""
+                                viewModel.loadProducts("Fertilizer")
+                            }
+                        )
+                        CategoryChip(
+                            label = "Equipment",
+                            selected = selectedCategory == "Equipment",
+                            onClick = {
+                                selectedCategory = "Equipment"
+                                searchQuery = ""
+                                viewModel.loadProducts("Equipment")
+                            }
+                        )
+                        CategoryChip(
+                            label = "Crops",
+                            selected = selectedCategory == "Crops",
+                            onClick = {
+                                selectedCategory = "Crops"
+                                searchQuery = ""
+                                viewModel.loadProducts("Crops")
+                            }
+                        )
+                    }
+                }
+            }
         }
         
         Spacer(modifier = Modifier.height(16.dp))

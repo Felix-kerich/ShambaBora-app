@@ -3,6 +3,7 @@ package com.app.shamba_bora.ui.screens.records
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -26,6 +27,7 @@ import java.time.LocalDate
 fun PatchesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCreate: () -> Unit = {},
+    onNavigateToPatchDetail: (Long) -> Unit = {},
     viewModel: PatchViewModel = hiltViewModel()
 ) {
     val patchesState by viewModel.patchesState.collectAsState()
@@ -77,7 +79,7 @@ fun PatchesScreen(
             }
             is Resource.Success -> {
                 val patches = state.data ?: emptyList()
-                displayPatchesContent(patches, paddingValues, viewModel)
+                displayPatchesContent(patches, paddingValues, viewModel, onNavigateToPatchDetail)
             }
         }
     }
@@ -87,7 +89,8 @@ fun PatchesScreen(
 private fun displayPatchesContent(
     patches: List<MaizePatchDTO>,
     paddingValues: PaddingValues,
-    viewModel: PatchViewModel
+    viewModel: PatchViewModel,
+    onNavigateToPatchDetail: (Long) -> Unit = {}
 ) {
     when {
         patches.isEmpty() -> {
@@ -169,7 +172,7 @@ private fun displayPatchesContent(
                     items(patches) { patch ->
                         PatchCard(
                             patch = patch,
-                            onSelect = {},
+                            onSelect = { patch.id?.let { onNavigateToPatchDetail(it) } },
                             onDelete = { patch.id?.let { viewModel.deletePatch(it) } }
                         )
                     }
@@ -187,7 +190,8 @@ fun PatchCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp),
+            .height(120.dp)
+            .clickable(onClick = onSelect),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)

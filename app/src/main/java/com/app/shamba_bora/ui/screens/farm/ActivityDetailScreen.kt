@@ -1,5 +1,8 @@
 package com.app.shamba_bora.ui.screens.farm
 
+import android.content.Intent
+import android.provider.CalendarContract
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -23,7 +27,9 @@ import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.FarmActivityViewModel
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +42,8 @@ fun ActivityDetailScreen(
     val activityState by viewModel.activityState.collectAsState()
     val remindersState by viewModel.remindersState.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     
     LaunchedEffect(activityId) {
         viewModel.loadActivity(activityId)
@@ -54,6 +62,9 @@ fun ActivityDetailScreen(
                 actions = {
                     IconButton(onClick = { showReminderDialog = true }) {
                         Icon(Icons.Default.Notifications, contentDescription = "Add Reminder")
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete Activity")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -120,7 +131,7 @@ fun ActivityDetailScreen(
                                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                         Spacer(modifier = Modifier.width(16.dp))
-                                        Column {
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(
                                                 text = activity.activityType ?: "Unknown Activity",
                                                 style = MaterialTheme.typography.headlineSmall,
@@ -388,6 +399,32 @@ fun ActivityDetailScreen(
                             }
                         )
                     }
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteDialog = false },
+                            title = { Text("Delete Activity") },
+                            text = { Text("Are you sure you want to delete this activity? This action cannot be undone.") },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        viewModel.deleteActivity(activityId)
+                                        showDeleteDialog = false
+                                        onNavigateBack()
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Text("Delete")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteDialog = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -485,6 +522,7 @@ fun AddReminderDialog(
     var showDatePicker by remember { mutableStateOf(false) }
     var repeatInterval by remember { mutableStateOf("NONE") }
     var expandedRepeat by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     
     val repeatOptions = listOf("NONE", "DAILY", "WEEKLY", "MONTHLY")
     
@@ -573,6 +611,12 @@ fun AddReminderDialog(
                                 repeatInterval = if (repeatInterval == "NONE") null else repeatInterval
                             )
                         )
+                        openReminderInCalendar(
+                            context = context,
+                            activityName = activityName,
+                            reminderDateTime = dateTime,
+                            message = message
+                        )
                     }
                 },
                 enabled = message.isNotBlank()
@@ -628,3 +672,69 @@ fun formatDateTime(dateTime: String): String {
         dateTime
     }
 }
+
+fun openActivityInCalendar(context: android.content.Context, activity: FarmActivity) {
+    val dateString = activity.activityDate
+    if (dateString.isNullOrBlank()) return
+
+    try {
+        val localDate = LocalDate.parse(dateString)
+        val startDateTime = localDate.atTime(9, 0)
+        val zoneId = ZoneId.systemDefault()
+        val startMillis = startDateTime.atZone(zoneId).toInstant().toEpochMilli()
+
+        val intent = Intent(Intent.ACTION_INSERT).apply {
+            data = CalendarContract.Events.CONTENT_URI
+            putExtra(CalendarContract.Events.TITLE, activity.activityType ?: "Farm Activity")
+            putExtra(CalendarContract.Events.DESCRIPTION, activity.description ?: "")
+            putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
+            putExtra(CalendarContract.EXTRA_EVENT_END_TIME, startMillis + 60 * 60 * 1000)
+        }
+
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(intent)
+        }
+    } catch (_: Exception) {
+        // Silently fail if date parsing or intent building fails
+    }
+}
+
+fun openReminderInCalendar(
+    context: android.content.Context,
+    activityName: String,
+    reminderDateTime: String,
+    message: String
+) {
+    try {
+        val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+        val dateTime = LocalDateTime.parse(reminderDateTime, formatter)
+        val zoneId = ZoneId.systemDefault()
+        val startMillis = dateTime.atZone(zoneId).toInstant().toEpochMilli()
+
+        val intent = Intent(Intent.ACTION_INSERT).apply {
+            data = CalendarContract.Events.CONTENT_URI
+            type = "vnd.android.cursor.item/event"
+            putExtra(CalendarContract.Events.TITLE, "$activityName - Reminder")
+            putExtra(CalendarContract.Events.DESCRIPTION, message)
+            putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
+            putExtra(CalendarContract.EXTRA_EVENT_END_TIME, startMillis + 60 * 60 * 1000)
+        }
+
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(intent)
+        } else {
+            Toast.makeText(
+                context,
+                "No calendar app found on this device",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    } catch (_: Exception) {
+        Toast.makeText(
+            context,
+            "Could not open calendar for this reminder",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+}
+

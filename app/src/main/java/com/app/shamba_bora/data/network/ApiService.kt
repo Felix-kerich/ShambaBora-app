@@ -242,6 +242,22 @@ interface ApiService {
         @Query("size") size: Int = 10
     ): Response<ApiResponse<PageResponse<Order>>>
     
+    // ========== MARKETPLACE - PAYMENTS (M-Pesa) ==========
+    @POST("marketplace/payments/initiate")
+    suspend fun initiatePayment(
+        @Body paymentRequest: com.app.shamba_bora.data.model.PaymentRequest
+    ): Response<ApiResponse<com.app.shamba_bora.data.model.Payment>>
+    
+    @GET("marketplace/payments/{paymentId}")
+    suspend fun getPaymentStatus(
+        @Path("paymentId") paymentId: Long
+    ): Response<ApiResponse<com.app.shamba_bora.data.model.Payment>>
+    
+    @GET("marketplace/payments/order/{orderId}")
+    suspend fun getPaymentByOrderId(
+        @Path("orderId") orderId: Long
+    ): Response<ApiResponse<com.app.shamba_bora.data.model.Payment>>
+    
     // ========== COLLABORATION - POSTS ==========
     @GET("collaboration/posts/feed")
     suspend fun getFeed(
@@ -431,15 +447,28 @@ interface ApiService {
         @Query("size") size: Int = 20
     ): Response<ApiResponse<PageResponse<Message>>>
     
-    // ========== CHATBOT / RAG SERVICE ==========
-    @POST("query")
-    suspend fun queryChatbot(@Body request: com.app.shamba_bora.data.model.ChatbotQueryRequest): Response<com.app.shamba_bora.data.model.ChatbotQueryResponse>
+    // ========== CHATBOT / RAG SERVICE (NEW API) ==========
+    @POST("api/v1/query")
+    suspend fun queryFarmingQuestion(@Body request: com.app.shamba_bora.data.model.ChatbotQueryRequest): Response<com.app.shamba_bora.data.model.ChatbotQueryResponse>
     
-    @POST("conversations")
+    @GET("api/v1/farmer/{farmerId}/history")
+    suspend fun getFarmerChatHistory(
+        @Path("farmerId") farmerId: Long,
+        @Query("limit") limit: Int = 50
+    ): Response<List<com.app.shamba_bora.data.model.ChatHistory>>
+    
+    @GET("api/v1/conversations/conversations/farmer/{farmerId}")
+    suspend fun getFarmerConversations(
+        @Path("farmerId") farmerId: Long,
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0
+    ): Response<com.app.shamba_bora.data.model.FarmerConversationsResponse>
+    
+    @POST("api/v1/conversations/conversations/create")
     suspend fun createConversation(@Body request: com.app.shamba_bora.data.model.CreateConversationRequest): Response<com.app.shamba_bora.data.model.ChatbotConversation>
     
-    @GET("conversations/{conversation_id}")
-    suspend fun getConversation(@Path("conversation_id") conversationId: String): Response<com.app.shamba_bora.data.model.ChatbotConversation>
+    @GET("api/v1/conversations/conversations/{conversationId}")
+    suspend fun getConversation(@Path("conversationId") conversationId: String): Response<com.app.shamba_bora.data.model.ConversationDetailsResponse>
     
     @GET("users/{user_id}/conversations")
     suspend fun getUserConversations(
@@ -461,7 +490,7 @@ interface ApiService {
     ): Response<Map<String, String>>
     
     // ========== FARM ANALYTICS ==========
-    @GET("farm-analytics/advice")
+    @GET("farm-analytics/ai-recommendations")
     suspend fun getFarmAdvice(): Response<com.app.shamba_bora.data.model.FarmAdviceResponse>
 }
 

@@ -3,6 +3,8 @@ package com.app.shamba_bora.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.shamba_bora.data.model.Order
+import com.app.shamba_bora.data.model.Payment
+import com.app.shamba_bora.data.model.PaymentRequest
 import com.app.shamba_bora.data.model.Product
 import com.app.shamba_bora.data.network.PageResponse
 import com.app.shamba_bora.data.repository.MarketplaceRepository
@@ -34,6 +36,12 @@ class MarketplaceViewModel @Inject constructor(
     
     private val _sellerOrdersState = MutableStateFlow<Resource<PageResponse<Order>>>(Resource.Loading())
     val sellerOrdersState: StateFlow<Resource<PageResponse<Order>>> = _sellerOrdersState.asStateFlow()
+    
+    private val _paymentState = MutableStateFlow<Resource<Payment>>(Resource.Loading())
+    val paymentState: StateFlow<Resource<Payment>> = _paymentState.asStateFlow()
+    
+    private val _paymentStatusState = MutableStateFlow<Resource<Payment>>(Resource.Loading())
+    val paymentStatusState: StateFlow<Resource<Payment>> = _paymentStatusState.asStateFlow()
     
     init {
         loadProducts()
@@ -74,7 +82,7 @@ class MarketplaceViewModel @Inject constructor(
         }
     }
     
-    fun placeOrder(productId: Long, quantity: Int, deliveryAddress: String? = null) {
+    fun placeOrder(productId: Long, quantity: Int, deliveryAddress: String? = null, phoneNumber: String? = null) {
         viewModelScope.launch {
             val order = Order(
                 buyerId = PreferenceManager.getUserId(),
@@ -82,7 +90,15 @@ class MarketplaceViewModel @Inject constructor(
                 quantity = quantity,
                 deliveryAddress = deliveryAddress
             )
-            repository.placeOrder(order)
+            val orderResult = repository.placeOrder(order)
+            if (orderResult is Resource.Success && orderResult.data?.id != null && phoneNumber != null) {
+                // Initiate payment after order is placed
+                initiatePayment(
+                    orderId = orderResult.data!!.id!!,
+                    phoneNumber = phoneNumber,
+                    accountReference = "ORDER-${orderResult.data!!.id}"
+                )
+            }
             loadOrders()
         }
     }
@@ -120,6 +136,33 @@ class MarketplaceViewModel @Inject constructor(
             val userId = PreferenceManager.getUserId()
             loadOrdersByBuyer(userId)
             loadOrdersBySeller(userId)
+        }
+    }
+    
+    // ========== PAYMENT METHODS ==========
+    fun initiatePayment(orderId: Long, phoneNumber: String, accountReference: String? = null) {
+        viewModelScope.launch {
+            _paymentState.value = Resource.Loading()
+            val paymentRequest = PaymentRequest(
+                orderId = orderId,
+                phoneNumber = phoneNumber,
+                accountReference = accountReference ?: "ORDER-$orderId"
+            )
+            _paymentState.value = repository.initiatePayment(paymentRequest)
+        }
+    }
+    
+    fun getPaymentStatus(paymentId: Long) {
+        viewModelScope.launch {
+            _paymentStatusState.value = Resource.Loading()
+            _paymentStatusState.value = repository.getPaymentStatus(paymentId)
+        }
+    }
+    
+    fun getPaymentByOrderId(orderId: Long) {
+        viewModelScope.launch {
+            _paymentStatusState.value = Resource.Loading()
+            _paymentStatusState.value = repository.getPaymentByOrderId(orderId)
         }
     }
     

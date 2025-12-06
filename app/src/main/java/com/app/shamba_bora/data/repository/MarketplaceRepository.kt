@@ -1,6 +1,8 @@
 package com.app.shamba_bora.data.repository
 
 import com.app.shamba_bora.data.model.Order
+import com.app.shamba_bora.data.model.Payment
+import com.app.shamba_bora.data.model.PaymentRequest
 import com.app.shamba_bora.data.model.Product
 import com.app.shamba_bora.data.network.ApiResponse
 import com.app.shamba_bora.data.network.ApiService
@@ -179,6 +181,61 @@ class MarketplaceRepository @Inject constructor(
                 }
             } else {
                 Resource.Error(response.message() ?: "Failed to get orders")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "An error occurred")
+        }
+    }
+    
+    // ========== PAYMENT METHODS ==========
+    suspend fun initiatePayment(paymentRequest: PaymentRequest): Resource<Payment> {
+        return try {
+            val response = apiService.initiatePayment(paymentRequest)
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (apiResponse.success && apiResponse.data != null) {
+                    Resource.Success(apiResponse.data!!)
+                } else {
+                    Resource.Error(apiResponse.message ?: "Failed to initiate payment")
+                }
+            } else {
+                Resource.Error(response.message() ?: "Failed to initiate payment")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "An error occurred")
+        }
+    }
+    
+    suspend fun getPaymentStatus(paymentId: Long): Resource<Payment> {
+        return try {
+            val response = apiService.getPaymentStatus(paymentId)
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (apiResponse.success && apiResponse.data != null) {
+                    Resource.Success(apiResponse.data!!)
+                } else {
+                    Resource.Error(apiResponse.message ?: "Failed to get payment status")
+                }
+            } else {
+                Resource.Error(response.message() ?: "Failed to get payment status")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "An error occurred")
+        }
+    }
+    
+    suspend fun getPaymentByOrderId(orderId: Long): Resource<Payment> {
+        return try {
+            val response = apiService.getPaymentByOrderId(orderId)
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (apiResponse.success && apiResponse.data != null) {
+                    Resource.Success(apiResponse.data!!)
+                } else {
+                    Resource.Error(apiResponse.message ?: "Failed to get payment")
+                }
+            } else {
+                Resource.Error(response.message() ?: "Failed to get payment")
             }
         } catch (e: Exception) {
             Resource.Error(e.message ?: "An error occurred")

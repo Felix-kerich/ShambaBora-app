@@ -24,6 +24,7 @@ import com.app.shamba_bora.data.network.ApiService
 import com.app.shamba_bora.data.network.LocalDateAdapter
 import com.app.shamba_bora.data.network.LocalDateTimeAdapter
 import com.app.shamba_bora.utils.Constants
+import com.app.shamba_bora.utils.PreferenceManager
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
@@ -168,12 +169,15 @@ fun ChatbotScreen() {
                                     
                                 val chatbotApi = retrofit.create(ApiService::class.java)
                                 
+                                // Get real farmer details
+                                val farmerId = PreferenceManager.getUserId()
+                                
                                 // Call the API
-                                val response = chatbotApi.queryChatbot(
+                                val response = chatbotApi.queryFarmingQuestion(
                                     ChatbotQueryRequest(
                                         question = message,
-                                        k = 4,
-                                        userId = "user123" // TODO: Get from PreferenceManager
+                                        conversationId = "temp-${System.currentTimeMillis()}",
+                                        farmerId = farmerId
                                     )
                                 )
                                 
@@ -181,7 +185,7 @@ fun ChatbotScreen() {
                                 messages.removeAt(messages.size - 1)
                                 
                                 if (response.isSuccessful && response.body() != null) {
-                                    val answer = response.body()!!.answer
+                                    val answer = response.body()!!.response ?: ""
                                     messages.add(ChatMessage("bot", answer))
                                 } else {
                                     messages.add(ChatMessage("bot", "Sorry, I couldn't process your question. Please try again."))
@@ -297,4 +301,3 @@ data class ChatMessage(
     val text: String,
     val isTyping: Boolean = false
 )
-

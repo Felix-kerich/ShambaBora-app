@@ -1,12 +1,18 @@
 package com.app.shamba_bora.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.app.shamba_bora.utils.Resource
+import com.app.shamba_bora.viewmodel.MarketplaceViewModel
 import com.app.shamba_bora.ui.screens.auth.LoginScreen
 import com.app.shamba_bora.ui.screens.auth.RegisterScreen
 import com.app.shamba_bora.utils.PreferenceManager
@@ -16,11 +22,13 @@ import com.app.shamba_bora.ui.screens.dashboard.DashboardScreen
 import com.app.shamba_bora.ui.screens.marketplace.MarketplaceScreen
 import com.app.shamba_bora.ui.screens.marketplace.AddProductScreen
 import com.app.shamba_bora.ui.screens.marketplace.ProductDetailScreen
+import com.app.shamba_bora.ui.screens.marketplace.CheckoutScreen
 import com.app.shamba_bora.ui.screens.marketplace.MyProductsScreen
 import com.app.shamba_bora.ui.screens.marketplace.OrderListScreen
 import com.app.shamba_bora.ui.screens.records.RecordsScreen
 import com.app.shamba_bora.ui.screens.records.PatchesScreen
 import com.app.shamba_bora.ui.screens.records.CreatePatchScreenWrapper
+import com.app.shamba_bora.ui.screens.records.PatchDetailScreenWrapper
 import com.app.shamba_bora.ui.screens.records.CreateActivityScreen
 import com.app.shamba_bora.ui.screens.records.CreateExpenseScreen
 import com.app.shamba_bora.ui.screens.records.CreateYieldScreen
@@ -124,10 +132,45 @@ fun AppNavHost(
                 productId = productId,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToCheckout = { product, quantity ->
-                    // For now, just go back - you can add checkout screen later
-                    navController.popBackStack()
+                    navController.navigate(Screen.Checkout.createRoute(product.id ?: 0L, quantity))
                 }
             )
+        }
+        
+        composable(
+            route = Screen.Checkout.route,
+            arguments = listOf(
+                navArgument("productId") { type = NavType.LongType },
+                navArgument("quantity") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+            val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+            
+            // Get product from marketplace viewmodel
+            val marketplaceViewModel: MarketplaceViewModel = hiltViewModel()
+            val productState by marketplaceViewModel.productState.collectAsState()
+            
+            if (productState is Resource.Success) {
+                val product = (productState as Resource.Success).data
+                if (product != null) {
+                    CheckoutScreen(
+                        product = product,
+                        quantity = quantity,
+                        onNavigateBack = { navController.popBackStack() },
+                        onPaymentSuccess = {
+                            navController.navigate(Screen.Marketplace.route) {
+                                popUpTo(Screen.ProductDetails.route) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+            } else {
+                // Load product if not already loaded
+                LaunchedEffect(productId) {
+                    marketplaceViewModel.loadProduct(productId)
+                }
+            }
         }
         
         composable(Screen.AddProduct.route) {
@@ -227,13 +270,27 @@ fun AppNavHost(
             composable(Screen.Patches.route) {
                 PatchesScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToCreate = { navController.navigate(Screen.CreatePatch.route) }
+                    onNavigateToCreate = { navController.navigate(Screen.CreatePatch.route) },
+                    onNavigateToPatchDetail = { patchId ->
+                        navController.navigate(Screen.PatchDetail.createRoute(patchId))
+                    }
                 )
             }
 
             composable(Screen.CreatePatch.route) {
                 CreatePatchScreenWrapper(
                     onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = Screen.PatchDetail.route,
+                arguments = listOf(navArgument("patchId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val patchId = backStackEntry.arguments?.getLong("patchId") ?: 0L
+                PatchDetailScreenWrapper(
+                    patchId = patchId,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         

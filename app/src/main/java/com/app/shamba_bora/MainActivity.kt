@@ -173,18 +173,18 @@ fun MainScreen() {
                                 Screen.Collaboration to Icons.Outlined.Person
                             )
                             isFarmer -> listOf(
-                                Screen.Home to Icons.Default.Home,
-                                Screen.Marketplace to Icons.Default.ShoppingCart,
-                                Screen.Collaboration to Icons.Outlined.Person,
+                                Screen.Home to Icons.Default.Home,                                
                                 Screen.Records to Icons.Default.Info,
-                                Screen.Chatbot to Icons.Default.Face
+                                Screen.Chatbot to Icons.Default.Face,
+                                Screen.Marketplace to Icons.Default.ShoppingCart,
+                                Screen.Collaboration to Icons.Outlined.Person
                             )
                             else -> listOf(
-                                Screen.Home to Icons.Default.Home,
-                                Screen.Marketplace to Icons.Default.ShoppingCart,
-                                Screen.Collaboration to Icons.Outlined.Person,
+                                Screen.Home to Icons.Default.Home,                                
                                 Screen.Records to Icons.Default.Info,
-                                Screen.Chatbot to Icons.Default.Face
+                                Screen.Chatbot to Icons.Default.Face,
+                                Screen.Marketplace to Icons.Default.ShoppingCart,
+                                Screen.Collaboration to Icons.Outlined.Person
                             )
                         }
                         

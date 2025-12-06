@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.Product
 import com.app.shamba_bora.viewmodel.MarketplaceViewModel
+import com.app.shamba_bora.utils.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +34,9 @@ fun CheckoutScreen(
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var orderId by remember { mutableStateOf<Long?>(null) }
     
+    val paymentState by viewModel.paymentState.collectAsState()
     val totalAmount = (product.price ?: 0.0) * quantity
     
     Scaffold(
@@ -273,8 +276,8 @@ fun CheckoutScreen(
                             errorMessage = "Please enter your M-Pesa phone number"
                             showError = true
                         }
-                        !phoneNumber.matches(Regex("^0[17]\\d{8}$")) -> {
-                            errorMessage = "Please enter a valid Kenyan phone number"
+                        !phoneNumber.matches(Regex("^(0|254)[17]\\d{8}$")) -> {
+                            errorMessage = "Please enter a valid Kenyan phone number (07/01 or 254...)"
                             showError = true
                         }
                         deliveryAddress.isBlank() -> {
@@ -284,16 +287,13 @@ fun CheckoutScreen(
                         else -> {
                             showError = false
                             isProcessing = true
-                            // Place order
+                            // Place order and initiate payment
                             viewModel.placeOrder(
                                 productId = product.id ?: 0L,
                                 quantity = quantity,
-                                deliveryAddress = deliveryAddress
+                                deliveryAddress = deliveryAddress,
+                                phoneNumber = phoneNumber
                             )
-                            // Simulate payment processing
-                            // In real app, this would initiate M-Pesa STK push
-                            showSuccessDialog = true
-                            isProcessing = false
                         }
                     }
                 },
@@ -314,6 +314,29 @@ fun CheckoutScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(if (isProcessing) "Processing..." else "Pay with M-Pesa")
+            }
+            
+            // Handle payment state
+            LaunchedEffect(paymentState) {
+                when (paymentState) {
+                    is com.app.shamba_bora.utils.Resource.Loading -> {
+                        // Loading state
+                    }
+                    is com.app.shamba_bora.utils.Resource.Success -> {
+                        val payment = (paymentState as com.app.shamba_bora.utils.Resource.Success).data
+                        if (payment != null) {
+                            showSuccessDialog = true
+                            isProcessing = false
+                        }
+                    }
+                    is com.app.shamba_bora.utils.Resource.Error -> {
+                        val error = (paymentState as com.app.shamba_bora.utils.Resource.Error)
+                        errorMessage = error.message ?: "Payment initiation failed"
+                        showError = true
+                        isProcessing = false
+                    }
+                    else -> {}
+                }
             }
         }
     }

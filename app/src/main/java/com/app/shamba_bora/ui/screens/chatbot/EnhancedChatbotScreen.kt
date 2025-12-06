@@ -1,5 +1,6 @@
 package com.app.shamba_bora.ui.screens.chatbot
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,7 +41,6 @@ fun EnhancedChatbotScreen(
 ) {
     var showHistory by remember { mutableStateOf(false) }
     var messageText by remember { mutableStateOf("") }
-    var currentConversationId by remember { mutableStateOf<String?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var conversationToDelete by remember { mutableStateOf<String?>(null) }
     var isLoadingConversation by remember { mutableStateOf(false) }
@@ -52,6 +52,7 @@ fun EnhancedChatbotScreen(
     
     val conversations by viewModel.conversations.collectAsState()
     val currentConversation by viewModel.currentConversation.collectAsState()
+    val currentConversationIdFlow by viewModel.currentConversationId.collectAsState()
     val queryResponse by viewModel.queryResponse.collectAsState()
     val farmAdvice by viewModel.farmAdvice.collectAsState()
     val farmAdviceBackgroundLoading by viewModel.farmAdviceBackgroundLoading.collectAsState()
@@ -69,6 +70,7 @@ fun EnhancedChatbotScreen(
         } else if (queryResponse is Resource.Success) {
             showMessageError = false
             lastPendingMessage = null
+            // Message succeeded - sidebar stays open for viewing conversation
         }
     }
     
@@ -92,16 +94,12 @@ fun EnhancedChatbotScreen(
         }
     }
     
-    // Close sidebar only after conversation is successfully loaded
+    // Track conversation loading state - keep sidebar open for viewing conversation
     LaunchedEffect(currentConversation) {
         if (isLoadingConversation && currentConversation is Resource.Success) {
-            // Conversation loaded successfully, now close sidebar
-            scope.launch {
-                // Small delay to show the content before closing
-                kotlinx.coroutines.delay(300)
-                showHistory = false
-                isLoadingConversation = false
-            }
+            // Conversation loaded successfully - sidebar stays open for viewing
+            isLoadingConversation = false
+            Log.d("EnhancedChatbotScreen", "Conversation loaded - sidebar stays open")
         } else if (isLoadingConversation && currentConversation is Resource.Error) {
             // Error loading conversation, keep sidebar open
             isLoadingConversation = false
@@ -132,10 +130,7 @@ fun EnhancedChatbotScreen(
                 title = (currentConversation as? Resource.Success)?.data?.title ?: "AI Assistant",
                 onMenuClick = { showHistory = !showHistory },
                 onNewChat = {
-                    currentConversationId = null
-                    viewModel.createConversation(title = "New Chat") { newId ->
-                        currentConversationId = newId
-                    }
+                    viewModel.startNewConversation()
                 },
                 onGetAdvice = { viewModel.getFarmAdvice() }
             )
@@ -160,7 +155,7 @@ fun EnhancedChatbotScreen(
                                 onRetry = {
                                     if (lastPendingMessage != null) {
                                         showMessageError = false
-                                        viewModel.askQuestion(lastPendingMessage!!, currentConversationId)
+                                        viewModel.askQuestion(lastPendingMessage!!)
                                     }
                                 }
                             )
@@ -168,7 +163,7 @@ fun EnhancedChatbotScreen(
                             // Show welcome screen only if no messages and no pending message
                             WelcomeScreen(
                                 onQuestionClick = { question ->
-                                    viewModel.askQuestion(question, currentConversationId)
+                                    viewModel.askQuestion(question)
                                 }
                             )
                         }
@@ -177,14 +172,14 @@ fun EnhancedChatbotScreen(
                         ErrorMessage(
                             message = conv.message ?: "Failed to load conversation",
                             onRetry = {
-                                currentConversationId?.let { viewModel.loadConversation(it) }
+                                currentConversationIdFlow?.let { viewModel.loadConversation(it) }
                             }
                         )
                     }
                     null -> {
                         WelcomeScreen(
                             onQuestionClick = { question ->
-                                viewModel.askQuestion(question, currentConversationId)
+                                viewModel.askQuestion(question)
                             }
                         )
                     }
@@ -197,15 +192,7 @@ fun EnhancedChatbotScreen(
                 onMessageChange = { messageText = it },
                 onSend = {
                     if (messageText.isNotBlank()) {
-                        // Only create conversation if it doesn't exist
-                        if (currentConversationId == null) {
-                            viewModel.createConversation(title = messageText.take(50)) { newId ->
-                                currentConversationId = newId
-                                viewModel.askQuestion(messageText, newId)
-                            }
-                        } else {
-                            viewModel.askQuestion(messageText, currentConversationId)
-                        }
+                        viewModel.askQuestion(messageText)
                         messageText = ""
                     }
                 },
@@ -225,19 +212,14 @@ fun EnhancedChatbotScreen(
             Box(modifier = Modifier.fillMaxHeight()) {
                 ConversationHistorySidebar(
                     conversations = conversations,
-                    currentConversationId = currentConversationId,
+                    currentConversationId = currentConversationIdFlow,
                     isLoadingConversation = isLoadingConversation,
                     onConversationClick = { conversationId ->
-                        currentConversationId = conversationId
                         isLoadingConversation = true
                         viewModel.loadConversation(conversationId)
-                        // Sidebar will close automatically after conversation loads
                     },
                     onNewConversation = {
-                        currentConversationId = null
-                        viewModel.createConversation(title = "New Chat") { newId ->
-                            currentConversationId = newId
-                        }
+                        viewModel.startNewConversation()
                         showHistory = false
                     },
                     onDeleteConversation = { conversationId ->
@@ -284,11 +266,7 @@ fun EnhancedChatbotScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteConversation(conversationToDelete!!) {
-                            if (conversationToDelete == currentConversationId) {
-                                currentConversationId = null
-                            }
-                        }
+                        viewModel.deleteConversation(conversationToDelete!!)
                         showDeleteDialog = false
                         conversationToDelete = null
                     }
@@ -304,9 +282,9 @@ fun EnhancedChatbotScreen(
         )
     }
     
-    // Farm Advice Dialog
+    // Farm Advice Ready Dialog
     if (showFarmAdviceReadyDialog && farmAdviceReady != null) {
-        FarmAdviceDialog(
+        EnhancedFarmAdviceDialog(
             advice = farmAdviceReady!!,
             onDismiss = {
                 showFarmAdviceReadyDialog = false
@@ -1333,11 +1311,19 @@ fun FarmAdviceDialog(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                advice.advice,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            if (advice.advice != null) {
+                                Text(
+                                    text = advice.advice!!,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            } else {
+                                Text(
+                                    text = "No general advice available",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
                 }

@@ -30,6 +30,9 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     object CreateYield : Screen("create_yield", "Create Yield", "add")
     object Patches : Screen("patches", "My Patches", "landscape")
     object CreatePatch : Screen("create_patch", "Create Patch", "add")
+    object PatchDetail : Screen("patch_detail/{patchId}", "Patch Details", "info") {
+        fun createRoute(patchId: Long) = "patch_detail/$patchId"
+    }
     
     // Profile & Settings
     object Profile : Screen("profile", "Profile", "person")
@@ -39,6 +42,9 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     // Marketplace Screens
     object ProductDetails : Screen("product_details/{productId}", "Product Details", "info") {
         fun createRoute(productId: Long) = "product_details/$productId"
+    }
+    object Checkout : Screen("checkout/{productId}/{quantity}", "Checkout", "payment") {
+        fun createRoute(productId: Long, quantity: Int) = "checkout/$productId/$quantity"
     }
     object AddProduct : Screen("add_product", "Add Product", "add")
     object EditProduct : Screen("edit_product/{productId}", "Edit Product", "edit") {
