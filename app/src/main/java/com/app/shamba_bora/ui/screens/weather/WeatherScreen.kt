@@ -237,13 +237,13 @@ fun CurrentWeatherCard(weather: Weather) {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 WeatherDetail(
-                    icon = Icons.Default.Info,
+                    icon = Icons.Default.Opacity,
                     label = "Humidity",
                     value = "${humidity ?: 0}%"
                 )
                 
                 WeatherDetail(
-                    icon = Icons.Default.Info,
+                    icon = Icons.Default.Air,
                     label = "Wind",
                     value = "${String.format("%.1f", windSpeed ?: 0.0)} m/s"
                 )
@@ -360,7 +360,7 @@ fun ForecastDayCard(forecast: DailyForecast) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Default.Opacity,
                         contentDescription = null,
                         modifier = Modifier.size(12.dp),
                         tint = MaterialTheme.colorScheme.primary
@@ -380,13 +380,13 @@ fun ForecastDayCard(forecast: DailyForecast) {
 fun getWeatherIcon(description: String?, weatherMain: String? = null): androidx.compose.ui.graphics.vector.ImageVector {
     val mainCondition = weatherMain?.lowercase() ?: description?.lowercase() ?: ""
     return when {
-        mainCondition.contains("clear") -> Icons.Default.Star // Sunny
-        mainCondition.contains("cloud") -> Icons.Default.Info // Cloudy
-        mainCondition.contains("rain") || mainCondition.contains("drizzle") -> Icons.Default.Info // Rainy
-        mainCondition.contains("thunder") -> Icons.Default.Warning // Thunderstorm
-        mainCondition.contains("snow") -> Icons.Default.Star // Snow
-        mainCondition.contains("mist") || mainCondition.contains("fog") || mainCondition.contains("haze") -> Icons.Default.Info
-        else -> Icons.Default.Info
+        mainCondition.contains("clear") -> Icons.Default.WbSunny // Sunny
+        mainCondition.contains("cloud") -> Icons.Default.Cloud // Cloudy
+        mainCondition.contains("rain") || mainCondition.contains("drizzle") -> Icons.Default.CloudQueue // Rainy
+        mainCondition.contains("thunder") -> Icons.Default.Thunderstorm // Thunderstorm
+        mainCondition.contains("snow") -> Icons.Default.AcUnit // Snow
+        mainCondition.contains("mist") || mainCondition.contains("fog") || mainCondition.contains("haze") -> Icons.Default.Cloud // Fog/Mist
+        else -> Icons.Default.Cloud
     }
 }
 

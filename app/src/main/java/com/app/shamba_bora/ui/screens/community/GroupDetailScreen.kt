@@ -102,7 +102,7 @@ fun GroupDetailScreen(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     text = { Text("Posts") },
-                    icon = { Icon(Icons.Default.Info, contentDescription = null) }
+                    icon = { Icon(Icons.Default.Article, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 1,
@@ -182,7 +182,7 @@ fun GroupPostsTab(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Default.Lightbulb,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -330,7 +330,12 @@ fun GroupChatTab(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 16.dp,
+                            bottom = 8.dp
+                        ),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         reverseLayout = true
                     ) {

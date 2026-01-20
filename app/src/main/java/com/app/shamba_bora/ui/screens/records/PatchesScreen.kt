@@ -105,7 +105,7 @@ private fun displayPatchesContent(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Icons.Default.Grain,
                             contentDescription = "No patches",
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -146,7 +146,7 @@ private fun displayPatchesContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Info,
+                                    imageVector = Icons.Default.Grain,
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -216,9 +216,9 @@ fun PatchCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    PatchBadge(label = patch.season, icon = Icons.Default.Info)
+                    PatchBadge(label = patch.season, icon = Icons.Default.DateRange)
                     patch.area?.let {
-                        PatchBadge(label = "$it ${patch.areaUnit}", icon = Icons.Default.Settings)
+                        PatchBadge(label = "$it ${patch.areaUnit}", icon = Icons.Default.Landscape)
                     }
                 }
                 Spacer(modifier = Modifier.height(6.dp))

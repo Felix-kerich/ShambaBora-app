@@ -11,11 +11,12 @@ class YieldRecordRepository @Inject constructor(
 ) {
     suspend fun getYieldRecords(
         cropType: String? = null,
+        patchId: Long? = null,
         page: Int = 0,
         size: Int = 10
     ): Resource<PageResponse<YieldRecord>> {
         return try {
-            val response = apiService.getYieldRecords(cropType, page, size)
+            val response = apiService.getYieldRecords(cropType, patchId, page, size)
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!)
             } else {

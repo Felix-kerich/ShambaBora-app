@@ -5,12 +5,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -32,11 +35,21 @@ fun ExpensesScreen(
     viewModel: FarmExpenseViewModel = hiltViewModel()
 ) {
     val expensesState by viewModel.expensesState.collectAsState()
+    val patchesState by viewModel.patchesState.collectAsState()
     val totalExpensesState by viewModel.totalExpensesState.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedPatchId by remember { mutableStateOf<Long?>(null) }
+    var showPatchFilter by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
         viewModel.loadExpenses()
         viewModel.loadTotalExpenses()
+        viewModel.loadPatches()
+    }
+    
+    val patches = when (patchesState) {
+        is Resource.Success -> patchesState.data ?: emptyList()
+        else -> emptyList()
     }
     
     Scaffold(
@@ -74,10 +87,21 @@ fun ExpensesScreen(
                 )
             }
             is Resource.Success -> {
-                val expenses = state.data?.content ?: emptyList()
+                val allExpenses = state.data?.content ?: emptyList()
                 val totalExpenses = when (val totalState = totalExpensesState) {
                     is Resource.Success -> totalState.data ?: 0.0
                     else -> 0.0
+                }
+                
+                // Apply filters
+                val filteredExpenses = allExpenses.filter { expense ->
+                    val matchesSearch = searchQuery.isEmpty() || 
+                        expense.category?.contains(searchQuery, ignoreCase = true) == true ||
+                        expense.description?.contains(searchQuery, ignoreCase = true) == true
+                    
+                    val matchesPatch = selectedPatchId == null
+                    
+                    matchesSearch && matchesPatch
                 }
                 
                 LazyColumn(
@@ -87,6 +111,73 @@ fun ExpensesScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    
+                    // Search and Filter Bar
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Search field
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                placeholder = { Text("Search expenses...") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Search, contentDescription = "Search")
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                shape = MaterialTheme.shapes.large,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+                            
+                            // Patch Filter Button
+                            Button(
+                                onClick = { showPatchFilter = !showPatchFilter },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors()
+                            ) {
+                                Icon(Icons.Default.FilterList, contentDescription = "Filter", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    selectedPatchId?.let { "Patch: $it" } ?: "Filter by Patch",
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Start
+                                )
+                                if (selectedPatchId != null) {
+                                    IconButton(
+                                        onClick = { selectedPatchId = null },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear filter", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                            
+                            // Patch Filter Dropdown
+                            if (showPatchFilter) {
+                                PatchFilterDropdown(
+                                    patches = patches,
+                                    selectedPatchId = selectedPatchId,
+                                    onPatchSelected = { patchId ->
+                                        selectedPatchId = patchId
+                                        showPatchFilter = false
+                                    },
+                                    onDismiss = { showPatchFilter = false }
+                                )
+                            }
+                        }
+                    }
                     
                     // Total Expenses Card
                     item {
@@ -117,7 +208,7 @@ fun ExpensesScreen(
                         }
                     }
                     
-                    if (expenses.isEmpty()) {
+                    if (filteredExpenses.isEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -136,12 +227,15 @@ fun ExpensesScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "No expenses yet",
+                                        text = "No expenses found",
                                         style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Tap + to record your first expense",
+                                        text = if (searchQuery.isNotEmpty() || selectedPatchId != null)
+                                            "Try adjusting your search or filters"
+                                        else
+                                            "Tap + to record your first expense",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -149,7 +243,7 @@ fun ExpensesScreen(
                             }
                         }
                     } else {
-                        items(expenses) { expense ->
+                        items(filteredExpenses) { expense ->
                             ExpenseCard(
                                 expense = expense,
                                 onClick = { expense.id?.let { onNavigateToExpenseDetail(it) } }
@@ -356,16 +450,16 @@ fun AddExpenseDialog(
 @Composable
 fun getCategoryIcon(category: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (category.lowercase()) {
-        "seeds" -> Icons.Default.Info
-        "fertilizer", "fertilizers" -> Icons.Default.Info
-        "pesticides", "pesticide" -> Icons.Default.Info
-        "labor", "labour" -> Icons.Default.Info
-        "equipment" -> Icons.Default.Build
-        "fuel" -> Icons.Default.Info
-        "water", "irrigation" -> Icons.Default.Info
-        "transport", "transportation" -> Icons.Default.Info
-        "maintenance" -> Icons.Default.Settings
-        else -> Icons.Default.Info
+        "seeds" -> Icons.Default.LocalFlorist // Seeds/Planting
+        "fertilizer", "fertilizers" -> Icons.Default.Grain // Fertilizer
+        "pesticides", "pesticide" -> Icons.Default.PestControl // Pesticides
+        "labor", "labour" -> Icons.Default.People // Labor
+        "equipment" -> Icons.Default.Build // Equipment
+        "fuel" -> Icons.Default.LocalGasStation // Fuel
+        "water", "irrigation" -> Icons.Default.Opacity // Water
+        "transport", "transportation" -> Icons.Default.DirectionsCar // Transport
+        "maintenance" -> Icons.Default.Settings // Maintenance
+        else -> Icons.Default.AttachMoney // Default: Cost-related
     }
 }
 

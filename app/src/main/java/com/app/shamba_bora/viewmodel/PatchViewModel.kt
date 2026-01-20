@@ -3,7 +3,7 @@ package com.app.shamba_bora.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.shamba_bora.data.model.MaizePatchDTO
-import com.app.shamba_bora.data.model.PatchComparisonDTO
+import com.app.shamba_bora.data.model.PatchComparisonResponse
 import com.app.shamba_bora.data.model.PatchSummaryDTO
 import com.app.shamba_bora.data.repository.PatchRepository
 import com.app.shamba_bora.utils.Resource
@@ -32,8 +32,8 @@ class PatchViewModel @Inject constructor(
     private val _patchSummaryState = MutableStateFlow<Resource<PatchSummaryDTO>>(Resource.Loading())
     val patchSummaryState: StateFlow<Resource<PatchSummaryDTO>> = _patchSummaryState.asStateFlow()
     
-    private val _comparisonState = MutableStateFlow<Resource<PatchComparisonDTO>>(Resource.Loading())
-    val comparisonState: StateFlow<Resource<PatchComparisonDTO>> = _comparisonState.asStateFlow()
+    private val _comparisonState = MutableStateFlow<Resource<PatchComparisonResponse>>(Resource.Loading())
+    val comparisonState: StateFlow<Resource<PatchComparisonResponse>> = _comparisonState.asStateFlow()
     
     init {
         loadPatches()

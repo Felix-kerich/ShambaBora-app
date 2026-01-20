@@ -102,6 +102,20 @@ fun DrawerMenu(
                 )
             }
             
+            // Analytics - Only for Farmers
+            if (isFarmer) {
+                DrawerMenuItem(
+                    icon = Icons.Default.ShowChart,
+                    title = "Farm Analytics",
+                    route = Screen.FarmAnalytics.route,
+                    currentRoute = currentRoute,
+                    onClick = { 
+                        onNavigate(Screen.FarmAnalytics.route)
+                        onClose()
+                    }
+                )
+            }
+            
             // Weather - Only for Farmers
             if (isFarmer) {
                 DrawerMenuItem(
@@ -111,6 +125,18 @@ fun DrawerMenu(
                     currentRoute = currentRoute,
                     onClick = { 
                         onNavigate(Screen.Weather.route)
+                        onClose()
+                    }
+                )
+                
+                // Saved Farm Advice
+                DrawerMenuItem(
+                    icon = Icons.Default.Favorite,
+                    title = "Saved Farm Advice",
+                    route = Screen.SavedAdvices.route,
+                    currentRoute = currentRoute,
+                    onClick = { 
+                        onNavigate(Screen.SavedAdvices.route)
                         onClose()
                     }
                 )

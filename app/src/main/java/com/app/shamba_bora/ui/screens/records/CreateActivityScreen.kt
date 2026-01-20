@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.*
+import com.app.shamba_bora.data.constants.FarmingInputs
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.ui.components.records.*
@@ -80,6 +81,7 @@ fun CreateActivityScreen(
     var notes by remember { mutableStateOf("") }
     var seedVarietyName by remember { mutableStateOf("") }
     var fertilizerProductName by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -144,11 +146,12 @@ fun CreateActivityScreen(
             // Location & Area
             item {
                 FormSection(title = "Location & Area") {
-                    FormTextField(
+                    LocationPickerField(
                         label = "Location",
-                        value = "",
-                        onValueChange = {},
-                        placeholder = "Field name or plot number"
+                        location = location,
+                        onLocationChange = { location = it },
+                        placeholder = "Field name or use GPS",
+                        isRequired = false
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
@@ -185,12 +188,59 @@ fun CreateActivityScreen(
             // Products & Inputs
             item {
                 FormSection(title = "Products & Inputs") {
-                    FormTextField(
-                        label = "Product Used",
-                        value = productUsed,
-                        onValueChange = { productUsed = it },
-                        placeholder = "e.g., Urea, Insecticide"
-                    )
+                    // Dynamic options based on activity type
+                    when (activityType) {
+                        ActivityType.FERTILIZING, ActivityType.TOP_DRESSING -> {
+                            SearchableDropdown(
+                                label = "Fertilizer Product",
+                                value = fertilizerProductName,
+                                onValueChange = { fertilizerProductName = it },
+                                options = FarmingInputs.FERTILIZERS,
+                                placeholder = "Search fertilizers...",
+                                allowCustomInput = true
+                            )
+                        }
+                        ActivityType.PLANTING, ActivityType.SEEDING -> {
+                            SearchableDropdown(
+                                label = "Seed Variety",
+                                value = seedVarietyName,
+                                onValueChange = { seedVarietyName = it },
+                                options = FarmingInputs.MAIZE_SEEDS,
+                                placeholder = "Search seed varieties...",
+                                allowCustomInput = true
+                            )
+                        }
+                        ActivityType.PEST_CONTROL, ActivityType.SPRAYING, ActivityType.DISEASE_CONTROL -> {
+                            SearchableDropdown(
+                                label = "Pesticide/Insecticide",
+                                value = productUsed,
+                                onValueChange = { productUsed = it },
+                                options = FarmingInputs.PESTICIDES,
+                                placeholder = "Search pesticides...",
+                                allowCustomInput = true
+                            )
+                        }
+                        ActivityType.WEEDING -> {
+                            SearchableDropdown(
+                                label = "Herbicide (if used)",
+                                value = productUsed,
+                                onValueChange = { productUsed = it },
+                                options = FarmingInputs.HERBICIDES,
+                                placeholder = "Search herbicides...",
+                                allowCustomInput = true
+                            )
+                        }
+                        else -> {
+                            SearchableDropdown(
+                                label = "Product Used",
+                                value = productUsed,
+                                onValueChange = { productUsed = it },
+                                options = FarmingInputs.FERTILIZERS + FarmingInputs.PESTICIDES,
+                                placeholder = "Search products...",
+                                allowCustomInput = true
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
                     FormNumberField(
                         label = "Application Rate (per unit area)",
@@ -198,19 +248,55 @@ fun CreateActivityScreen(
                         onValueChange = { applicationRate = it },
                         placeholder = "e.g., 40"
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    FormTextField(
-                        label = "Seed Variety (if planting)",
-                        value = seedVarietyName,
-                        onValueChange = { seedVarietyName = it },
-                        placeholder = "e.g., H511"
+                }
+            }
+
+            // Quick Description Helper
+            item {
+                FormSection(title = "Activity Description Helper") {
+                    val descriptions = FarmingInputs.ACTIVITY_DESCRIPTIONS[activityType.name] 
+                        ?: listOf("Custom description")
+                    
+                    if (descriptions.isNotEmpty() && descriptions.first() != "Custom description") {
+                        SearchableDropdown(
+                            label = "Quick Description",
+                            value = description,
+                            onValueChange = { description = it },
+                            options = descriptions,
+                            placeholder = "Select or type custom...",
+                            allowCustomInput = true
+                        )
+                    } else {
+                        FormTextField(
+                            label = "Description",
+                            value = description,
+                            onValueChange = { description = it },
+                            placeholder = "Describe the activity",
+                            isRequired = true,
+                            minLines = 2,
+                            maxLines = 3
+                        )
+                    }
+                }
+            }
+
+            // Equipment
+            item {
+                FormSection(title = "Equipment Used") {
+                    SearchableDropdown(
+                        label = "Equipment",
+                        value = equipmentUsed,
+                        onValueChange = { equipmentUsed = it },
+                        options = FarmingInputs.EQUIPMENT,
+                        placeholder = "Search equipment...",
+                        allowCustomInput = true
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    FormTextField(
-                        label = "Fertilizer Used (if applicable)",
-                        value = fertilizerProductName,
-                        onValueChange = { fertilizerProductName = it },
-                        placeholder = "e.g., NPK 23-23-0"
+                    FormNumberField(
+                        label = "Equipment Cost",
+                        value = equipmentCost,
+                        onValueChange = { equipmentCost = it },
+                        placeholder = "Cost for equipment"
                     )
                 }
             }
@@ -259,20 +345,6 @@ fun CreateActivityScreen(
             // Advanced Options
             item {
                 AdvancedOptionsSection(title = "Additional Details") {
-                    FormTextField(
-                        label = "Equipment Used",
-                        value = equipmentUsed,
-                        onValueChange = { equipmentUsed = it },
-                        placeholder = "e.g., Tractor, Sprayer"
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    FormNumberField(
-                        label = "Equipment Cost",
-                        value = equipmentCost,
-                        onValueChange = { equipmentCost = it },
-                        placeholder = "Cost for equipment"
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
                     FormTextField(
                         label = "Notes",
                         value = notes,

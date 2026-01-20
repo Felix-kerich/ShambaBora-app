@@ -35,7 +35,7 @@ import com.app.shamba_bora.viewmodel.MessagingViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationListScreen(
-    onNavigateToChat: (Long) -> Unit,
+    onNavigateToChat: (Long, String) -> Unit,
     onNavigateToGroups: () -> Unit,
     viewModel: MessagingViewModel = hiltViewModel()
 ) {
@@ -130,7 +130,7 @@ fun ConversationListScreen(
                         items(conversationList) { conversation ->
                             ConversationCard(
                                 conversation = conversation,
-                                onClick = { onNavigateToChat(conversation.partnerId) }
+                                onClick = { onNavigateToChat(conversation.partnerId, conversation.partnerName) }
                             )
                         }
                     }

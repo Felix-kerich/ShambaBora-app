@@ -73,7 +73,11 @@ data class ChatbotQueryRequest(
     @SerializedName("include_farmer_data")
     val includeFarmerData: Boolean = true,
     @SerializedName("session_id")
-    val sessionId: String? = null
+    val sessionId: String? = null,
+    @SerializedName("farm_context")
+    val farmContext: FarmContextData? = null,
+    @SerializedName("system_prompt")
+    val systemPrompt: String? = null
 )
 
 /**

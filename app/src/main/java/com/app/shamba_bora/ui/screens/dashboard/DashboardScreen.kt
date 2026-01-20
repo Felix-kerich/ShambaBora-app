@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.* // Added for Outlined icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,14 +38,14 @@ fun DashboardScreen(
     val farmerProfileState by profileViewModel.farmerProfileState.collectAsState()
     val userRoles = PreferenceManager.getUserRoles()
     val isFarmer = userRoles.contains("FARMER")
-    
+
     LaunchedEffect(Unit) {
         viewModel.loadDashboard()
         if (isFarmer) {
             profileViewModel.loadFarmerProfile()
         }
     }
-    
+
     when (val state = dashboardState) {
         is Resource.Loading -> {
             LoadingIndicator()
@@ -109,7 +110,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-                
+
                 // Welcome Section
                 item {
                     Card(
@@ -138,7 +139,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-                
+
                 // Quick Stats
                 item {
                     Text(
@@ -147,7 +148,7 @@ fun DashboardScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
+
                 item {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
@@ -166,7 +167,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-                
+
                 // Quick Actions
                 item {
                     Text(
@@ -175,7 +176,7 @@ fun DashboardScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
+
                 items(getQuickActions(onNavigateToActivities, onNavigateToExpenses, onNavigateToYields, onNavigateToWeather)) { action ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -207,14 +208,14 @@ fun DashboardScreen(
                                 )
                             }
                             Icon(
-                                imageVector = Icons.Default.Build,
+                                imageVector = Icons.Default.ChevronRight,
                                 contentDescription = "Navigate",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-                
+
                 // Recent Activities Section
                 item {
                     Row(
@@ -232,7 +233,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-                
+
                 val recentActivities = dashboard?.recentActivities ?: emptyList()
                 if (recentActivities.isEmpty()) {
                     item {
@@ -258,7 +259,7 @@ fun DashboardScreen(
                                     color = MaterialTheme.colorScheme.primaryContainer
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Build,
+                                        imageVector = Icons.Default.HistoryEdu,
                                         contentDescription = null,
                                         modifier = Modifier.padding(12.dp),
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -291,25 +292,25 @@ fun getQuickStats(dashboard: com.app.shamba_bora.data.model.Dashboard?): List<Qu
         QuickStat(
             "Activities",
             "${dashboard?.totalActivities ?: 0}",
-            Icons.Default.Build,
+            Icons.Default.Construction,
             androidx.compose.ui.graphics.Color(0xFF6200EE) // Primary color
         ) {},
         QuickStat(
             "Expenses",
             "KES ${String.format("%.2f", dashboard?.totalExpensesAmount ?: 0.0)}",
-            Icons.Default.Build,
+            Icons.Default.AttachMoney,
             androidx.compose.ui.graphics.Color(0xFFB00020) // Error color
         ) {},
         QuickStat(
             "Yields",
             "${dashboard?.totalYieldRecords ?: 0} records",
-            Icons.Default.Build,
+            Icons.Default.Agriculture,
             androidx.compose.ui.graphics.Color(0xFF03DAC6) // Tertiary color
         ) {},
         QuickStat(
             "Revenue",
             "KES ${String.format("%.2f", dashboard?.totalRevenue ?: 0.0)}",
-            Icons.Default.Build,
+            Icons.Default.TrendingUp,
             androidx.compose.ui.graphics.Color(0xFF03A9F4) // Secondary color
         ) {}
     )
@@ -325,28 +326,28 @@ fun getQuickActions(
         QuickAction(
             "Record Activity",
             "Log a new farm activity",
-            Icons.Default.AddCircle,
+            Icons.Default.EventNote,
             androidx.compose.ui.graphics.Color(0xFF6200EE), // Primary color
             onNavigateToActivities
         ),
         QuickAction(
             "Add Expense",
             "Record a new expense",
-            Icons.Default.Build,
+            Icons.Outlined.Payment, // Fixed: Changed from Default.PaymentOutlined
             androidx.compose.ui.graphics.Color(0xFFB00020), // Error color
             onNavigateToExpenses
         ),
         QuickAction(
             "Record Yield",
             "Log harvest information",
-            Icons.Default.Build,
+            Icons.Outlined.Grass, // Fixed: Changed from Default.GrassOutlined
             androidx.compose.ui.graphics.Color(0xFF03DAC6), // Tertiary color
             onNavigateToYields
         ),
         QuickAction(
             "Weather Forecast",
             "Check weather conditions",
-            Icons.Default.Build,
+            Icons.Default.Cloud,
             androidx.compose.ui.graphics.Color(0xFF03A9F4), // Secondary color
             onNavigateToWeather
         )
@@ -368,4 +369,3 @@ data class QuickAction(
     val color: androidx.compose.ui.graphics.Color,
     val onClick: () -> Unit
 )
-

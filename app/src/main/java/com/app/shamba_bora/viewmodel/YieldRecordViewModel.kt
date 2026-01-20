@@ -51,7 +51,14 @@ class YieldRecordViewModel @Inject constructor(
     fun loadYieldRecords(cropType: String? = null, page: Int = 0, size: Int = 10) {
         viewModelScope.launch {
             _yieldsState.value = Resource.Loading()
-            _yieldsState.value = repository.getYieldRecords(cropType, page, size)
+            _yieldsState.value = repository.getYieldRecords(cropType, patchId = null, page, size)
+        }
+    }
+    
+    fun loadYieldRecordsByPatch(patchId: Long, page: Int = 0, size: Int = 10) {
+        viewModelScope.launch {
+            _yieldsState.value = Resource.Loading()
+            _yieldsState.value = repository.getYieldRecords(cropType = null, patchId = patchId, page, size)
         }
     }
     

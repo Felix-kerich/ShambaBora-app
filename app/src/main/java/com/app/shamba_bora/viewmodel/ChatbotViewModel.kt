@@ -29,7 +29,15 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
-class ChatbotViewModel @Inject constructor() : ViewModel() {
+class ChatbotViewModel @Inject constructor(
+    private val farmActivityRepository: com.app.shamba_bora.data.repository.FarmActivityRepository,
+    private val farmExpenseRepository: com.app.shamba_bora.data.repository.FarmExpenseRepository,
+    private val yieldRecordRepository: com.app.shamba_bora.data.repository.YieldRecordRepository,
+    private val farmAnalyticsRepository: com.app.shamba_bora.data.repository.FarmAnalyticsRepository,
+    private val patchRepository: com.app.shamba_bora.data.repository.PatchRepository,
+    private val userRepository: com.app.shamba_bora.data.repository.UserRepository,
+    private val savedAdviceRepository: com.app.shamba_bora.data.repository.SavedAdviceRepository
+) : ViewModel() {
     
     private val _conversations = MutableStateFlow<Resource<List<ChatbotConversationSummary>>>(Resource.Loading())
     val conversations: StateFlow<Resource<List<ChatbotConversationSummary>>> = _conversations.asStateFlow()
@@ -65,6 +73,20 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    
+    // ============= FARM CONTEXT DATA =============
+    
+    private val _useFarmContext = MutableStateFlow(false)
+    val useFarmContext: StateFlow<Boolean> = _useFarmContext.asStateFlow()
+    
+    private val _farmContext = MutableStateFlow<FarmContextData?>(null)
+    val farmContext: StateFlow<FarmContextData?> = _farmContext.asStateFlow()
+    
+    private val _farmContextLoading = MutableStateFlow(false)
+    val farmContextLoading: StateFlow<Boolean> = _farmContextLoading.asStateFlow()
+    
+    private val _patchesWithDetails = MutableStateFlow<List<MaizePatchDTO>>(emptyList())
+    val patchesWithDetails: StateFlow<List<MaizePatchDTO>> = _patchesWithDetails.asStateFlow()
     
     private var currentSessionId: String = ""
     private var currentFarmerId: Long = 0
@@ -213,18 +235,20 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
                     // Convert backend response to ChatbotConversation format
                     if (detailsResponse.data != null && detailsResponse.data.session != null) {
                         val session = detailsResponse.data.session
-                        val messages = detailsResponse.data.messages?.map { msg ->
-                            // Convert ConversationMessage to ChatbotMessage format
-                            ChatbotMessage(
-                                role = "user",
-                                content = msg.userMessage,
-                                timestamp = msg.createdAt ?: "",
-                                contexts = null
-                            )
-                        }?.toMutableList() ?: mutableListOf()
+                        val messages = mutableListOf<ChatbotMessage>()
                         
-                        // Also add AI responses as separate messages
+                        // Alternate between user and AI messages - question then answer pattern
                         detailsResponse.data.messages?.forEach { msg ->
+                            // Add user message first
+                            messages.add(
+                                ChatbotMessage(
+                                    role = "user",
+                                    content = msg.userMessage,
+                                    timestamp = msg.createdAt ?: "",
+                                    contexts = null
+                                )
+                            )
+                            // Then add AI response immediately after
                             messages.add(
                                 ChatbotMessage(
                                     role = "assistant",
@@ -320,18 +344,54 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
                     currentConvId
                 }
                 
+                // Build the question with context if enabled
+                val questionWithContext = if (_useFarmContext.value && _farmContext.value != null) {
+                    val baseQuestion = question
+                    val contextPart = formatFarmContextForPrompt()
+                    val combined = baseQuestion + contextPart
+                    
+                    // Validate total length (API limit is 1000, keep buffer for safety)
+                    if (combined.length > 950) {
+                        Log.w("ChatbotViewModel", "Question too long (${combined.length} chars), truncating context further")
+                        // If too long, reduce context more aggressively
+                        val remainingSpace = 950 - baseQuestion.length
+                        if (remainingSpace > 100) {
+                            baseQuestion + contextPart.take(remainingSpace)
+                        } else {
+                            // Question alone is too long or little space left
+                            Log.w("ChatbotViewModel", "Question alone is ${baseQuestion.length} chars, sending without context")
+                            baseQuestion
+                        }
+                    } else {
+                        combined
+                    }
+                } else {
+                    // No context, but still validate question length
+                    if (question.length > 950) {
+                        Log.w("ChatbotViewModel", "Question exceeds limit (${question.length} chars), truncating")
+                        question.take(950)
+                    } else {
+                        question
+                    }
+                }
+                
+                Log.d("ChatbotViewModel", "Final question length: ${questionWithContext.length} chars")
+                
                 // Send query with conversation ID
                 val request = ChatbotQueryRequest(
-                    question = question,
+                    question = questionWithContext,
                     k = 4,
                     conversationId = conversationId,
                     userId = PreferenceManager.getUserId().toString(),
                     farmerId = farmerId,
                     includeFarmerData = true,
-                    sessionId = currentSessionId
+                    sessionId = currentSessionId,
+                    farmContext = if (_useFarmContext.value) _farmContext.value else null,
+                    systemPrompt = buildSystemPrompt()
                 )
                 
                 Log.d("ChatbotViewModel", "Sending question with conversation ID: $conversationId")
+                Log.d("ChatbotViewModel", "Farm context included: ${_useFarmContext.value}")
                 val response = chatbotApi.queryFarmingQuestion(request)
                 
                 if (response.isSuccessful && response.body() != null) {
@@ -520,6 +580,26 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
         _farmAdvice.value = null
     }
     
+    /**
+     * Save the current farm advice to local storage
+     */
+    fun saveCurrentAdvice(title: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val currentAdvice = (_farmAdvice.value as? Resource.Success)?.data
+                if (currentAdvice != null) {
+                    savedAdviceRepository.saveAdvice(title, currentAdvice)
+                    onSuccess()
+                } else {
+                    onError("No advice to save")
+                }
+            } catch (e: Exception) {
+                Log.e("ChatbotViewModel", "Error saving advice", e)
+                onError(e.message ?: "Failed to save advice")
+            }
+        }
+    }
+    
     // Diagnostic function - check authentication status
     fun verifyAuthenticationStatus() {
         val token = PreferenceManager.getToken()
@@ -535,5 +615,333 @@ class ChatbotViewModel @Inject constructor() : ViewModel() {
     
     fun clearPendingMessage() {
         _pendingMessage.value = null
+    }
+    
+    // ============= FARM CONTEXT DATA MANAGEMENT =============
+    
+    /**
+     * Toggle farm context sharing on/off
+     */
+    fun toggleFarmContext(enabled: Boolean) {
+        _useFarmContext.value = enabled
+        if (enabled && _farmContext.value == null) {
+            // Load context data when enabling for the first time
+            loadFarmContext()
+        }
+    }
+    
+    /**
+     * Load comprehensive farm context data from all sources
+     * Aggregates farmer profile, analytics, patches, activities, expenses, and yields
+     */
+    fun loadFarmContext() {
+        viewModelScope.launch {
+            _farmContextLoading.value = true
+            try {
+                val farmerId = PreferenceManager.getUserId().toLong()
+                
+                // Fetch farmer profile
+                val farmerProfileResult = userRepository.getMyFarmerProfile()
+                val farmerProfile = when (farmerProfileResult) {
+                    is Resource.Success -> farmerProfileResult.data
+                    else -> null
+                }
+                
+                // Fetch farm analytics
+                val analyticsResult = farmAnalyticsRepository.getFarmAnalytics()
+                val analytics = when (analyticsResult) {
+                    is Resource.Success -> analyticsResult.data
+                    else -> null
+                }
+                
+                // Fetch patches with nested activities, yields, and expenses (limit to 10 for context window)
+                val patchesResult = patchRepository.getPatches()
+                val patches = when (patchesResult) {
+                    is Resource.Success -> patchesResult.data?.take(10) ?: emptyList()
+                    else -> emptyList()
+                }
+                
+                // Store patches for detailed formatting
+                _patchesWithDetails.value = patches
+                
+                // Fetch recent activities (limit to 15)
+                val activitiesResult = farmActivityRepository.getActivities(page = 0, size = 15)
+                val activities = when (activitiesResult) {
+                    is Resource.Success -> activitiesResult.data?.content
+                        ?.map { activity ->
+                            FarmActivitySummary(
+                                activityType = activity.activityType,
+                                activityDate = activity.activityDate?.toString() ?: "",
+                                description = activity.description
+                            )
+                        } ?: emptyList()
+                    else -> emptyList()
+                }
+                
+                // Fetch recent expenses (limit to 15)
+                val expensesResult = farmExpenseRepository.getExpenses(page = 0, size = 15)
+                val expenses = when (expensesResult) {
+                    is Resource.Success -> expensesResult.data?.content
+                        ?.map { expense ->
+                            ExpenseSummary(
+                                category = expense.category,
+                                amount = expense.amount,
+                                expenseDate = expense.expenseDate?.toString() ?: "",
+                                description = expense.description
+                            )
+                        } ?: emptyList()
+                    else -> emptyList()
+                }
+                
+                // Fetch recent yields (limit to 15)
+                val yieldsResult = yieldRecordRepository.getYieldRecords(page = 0, size = 15)
+                val yields = when (yieldsResult) {
+                    is Resource.Success -> yieldsResult.data?.content
+                        ?.map { yieldRecord ->
+                            YieldSummary(
+                                yieldAmount = yieldRecord.yieldAmount,
+                                unit = yieldRecord.unit,
+                                harvestDate = yieldRecord.harvestDate?.toString() ?: "",
+                                totalRevenue = yieldRecord.totalRevenue
+                            )
+                        } ?: emptyList()
+                    else -> emptyList()
+                }
+                
+                // Build complete farm context
+                _farmContext.value = FarmContextData(
+                    farmerName = farmerProfile?.farmName,
+                    farmName = farmerProfile?.farmName,
+                    location = farmerProfile?.location,
+                    farmSize = farmerProfile?.farmSize,
+                    primaryCrop = farmerProfile?.primaryCrops?.firstOrNull(),
+                    farmAnalytics = analytics,
+                    patches = emptyList(), // Detailed patches stored in _patchesWithDetails
+                    recentActivities = activities,
+                    recentExpenses = expenses,
+                    recentYields = yields
+                )
+                
+                Log.d("ChatbotViewModel", "Farm context loaded successfully")
+            } catch (e: Exception) {
+                Log.e("ChatbotViewModel", "Error loading farm context", e)
+            } finally {
+                _farmContextLoading.value = false
+            }
+        }
+    }
+    
+    /**
+     * Format farm context for inclusion in chat prompt
+     * Includes detailed patch information with activities, yields, expenses, seeds, fertilizers, equipment
+     * Intelligently truncates to fit within API character limit (max 700 chars for context)
+     */
+    private fun formatFarmContextForPrompt(): String {
+        val context = _farmContext.value ?: return ""
+        val detailedPatches = _patchesWithDetails.value
+        
+        // Build full context first, then truncate intelligently
+        val fullContext = buildFullFarmContext(context, detailedPatches)
+        
+        // Truncate to fit within limit (leave room for user question ~300 chars)
+        return truncateIntelligently(fullContext, maxLength = 700)
+    }
+    
+    /**
+     * Build the full farm context without truncation
+     */
+    private fun buildFullFarmContext(
+        context: FarmContextData,
+        detailedPatches: List<MaizePatchDTO>
+    ): String {
+        val sb = StringBuilder()
+        
+        sb.append("\n\n=== FARM CONTEXT ===\n")
+        
+        // Farmer profile with farmer/farm name and location
+        val farmerInfo = mutableListOf<String>()
+        if (!context.farmerName.isNullOrBlank()) farmerInfo.add("Farm: ${context.farmerName}")
+        if (!context.location.isNullOrBlank()) farmerInfo.add("Location: ${context.location}")
+        if (farmerInfo.isNotEmpty()) {
+            sb.append(farmerInfo.joinToString(" | ")).append("\n")
+        }
+        
+        // Overall analytics (ALWAYS INCLUDE - HIGH PRIORITY)
+        context.farmAnalytics?.let { analytics ->
+            sb.append("\nFarm Summary:\n")
+            sb.append("Revenue Ksh ${formatNumber(analytics.totalRevenue)}, ")
+            sb.append("Expenses Ksh ${formatNumber(analytics.totalExpenses)}, ")
+            sb.append("Profit Ksh ${formatNumber(analytics.netProfit)}\n")
+        }
+        
+        // Detailed patch information
+        if (detailedPatches.isNotEmpty()) {
+            sb.append("\nPATCHES (${detailedPatches.size} total):\n")
+            detailedPatches.forEach { patch ->
+                sb.append("\n[${patch.name}] ${patch.area ?: 0.0} ${patch.areaUnit}, ${patch.season} ${patch.year}\n")
+                
+                // Recent activities (limit to 3 most recent)
+                if (!patch.activities.isNullOrEmpty()) {
+                    val recentActivities = patch.activities.take(3)
+                    sb.append("Activities (${patch.activities.size}): ")
+                    recentActivities.forEach { activity ->
+                        sb.append("${activity.activityType} on ${activity.activityDate}")
+                        if (!activity.productUsed.isNullOrBlank()) {
+                            sb.append(" (${activity.productUsed})")
+                        }
+                        if (activity.cost != null && activity.cost > 0) {
+                            sb.append(" Ksh${formatNumber(activity.cost)}")
+                        }
+                        sb.append("; ")
+                    }
+                    sb.append("\n")
+                }
+                
+                // Total expenses for patch
+                if (!patch.expenses.isNullOrEmpty()) {
+                    val totalExpenses = patch.expenses.sumOf { it.amount }
+                    sb.append("Expenses (${patch.expenses.size}): Ksh${formatNumber(totalExpenses)}\n")
+                }
+                
+                // Yields summary
+                if (!patch.yields.isNullOrEmpty()) {
+                    patch.yields.forEach { yieldRecord ->
+                        sb.append("Yield: ${formatNumber(yieldRecord.yieldAmount)} ${yieldRecord.unit}, ")
+                        sb.append("${yieldRecord.qualityGrade}")
+                        if (yieldRecord.totalRevenue != null && yieldRecord.totalRevenue > 0) {
+                            sb.append(", Revenue: Ksh${formatNumber(yieldRecord.totalRevenue)}")
+                        }
+                        sb.append("\n")
+                    }
+                }
+            }
+        }
+        
+        return sb.toString()
+    }
+    
+    /**
+     * Intelligently truncate farm context to fit within character limit
+     * Prioritizes: Farm summary > Recent patches > Recent activities > Details
+     */
+    private fun truncateIntelligently(fullContext: String, maxLength: Int): String {
+        if (fullContext.length <= maxLength) {
+            return fullContext
+        }
+        
+        val lines = fullContext.split("\n")
+        val result = StringBuilder()
+        var currentLength = 0
+        
+        // Priority levels:
+        // 1. Header and farm summary (ALWAYS INCLUDE)
+        // 2. Patch names and key stats
+        // 3. Recent activities
+        // 4. Other details
+        
+        val headerEndIndex = lines.indexOfFirst { it.contains("PATCHES") }.coerceAtLeast(4)
+        val essentialLines = lines.take(headerEndIndex)
+        
+        // Add essential information
+        essentialLines.forEach { line ->
+            if (currentLength + line.length + 1 < maxLength) {
+                result.append(line).append("\n")
+                currentLength += line.length + 1
+            }
+        }
+        
+        // Add patch information selectively
+        var patchCount = 0
+        val maxPatches = 3 // Limit to 3 patches max
+        
+        for (i in headerEndIndex until lines.size) {
+            val line = lines[i]
+            
+            // Track patch boundaries
+            if (line.startsWith("[") && line.contains("]")) {
+                patchCount++
+                if (patchCount > maxPatches) {
+                    // Add summary of remaining patches
+                    val remaining = lines.count { it.startsWith("[") && it.contains("]") } - maxPatches
+                    if (remaining > 0 && currentLength + 30 < maxLength) {
+                        result.append("\n... and $remaining more patch(es)\n")
+                    }
+                    break
+                }
+            }
+            
+            // Skip overly detailed lines if space is tight
+            if (currentLength + line.length + 1 >= maxLength - 50) {
+                // Reserve space for truncation message
+                result.append("\n[Context truncated - ${lines.size - i} more details available]\n")
+                break
+            }
+            
+            // Add line if it fits
+            if (currentLength + line.length + 1 < maxLength) {
+                result.append(line).append("\n")
+                currentLength += line.length + 1
+            }
+        }
+        
+        return result.toString()
+    }
+    
+    /**
+     * Format numbers compactly (e.g., 1.2M instead of 1200000)
+     */
+    private fun formatNumber(value: Double): String {
+        return when {
+            value >= 1_000_000 -> String.format("%.1fM", value / 1_000_000)
+            value >= 1_000 -> String.format("%.1fK", value / 1_000)
+            else -> String.format("%.0f", value)
+        }
+    }
+    
+    /**
+     * Build comprehensive system prompt for the AI
+     * Instructs the AI to provide farming advice based on user's analytics and maize farming best practices
+     */
+    private fun buildSystemPrompt(): String {
+        return """
+You are an expert agricultural advisor specializing in maize (corn) farming. Your role is to provide data-driven, practical farming advice based on the farmer's analytics and regional best practices.
+
+KEY RESPONSIBILITIES:
+1. ANALYZE FARM DATA: When farm analytics are provided, carefully review the farmer's performance metrics including yields, expenses, revenue, and profitability.
+
+2. PROVIDE CONTEXT-AWARE ADVICE: 
+   - Answer questions specifically based on the farmer's own data and performance
+   - Identify patterns in their yields, expenses, and profitability by patch and season
+   - Compare performance across patches to identify high-performing and underperforming areas
+   - Suggest specific interventions based on their actual costs and yields
+
+3. MAIZE FARMING EXPERTISE:
+   - Recommend optimal planting dates, spacing, and fertilizer amounts for their region
+   - Advise on pest and disease management specific to their crop performance
+   - Suggest cost optimization strategies based on their expense patterns
+   - Provide crop rotation recommendations
+   - Recommend improved seed varieties and farming techniques
+
+4. RECOMMENDATIONS & BEST PRACTICES:
+   - Prioritize high-impact, cost-effective interventions
+   - Consider the farmer's current resource levels and constraints
+   - Provide step-by-step implementation guidance
+   - Include estimated ROI and timeline for recommendations
+   - Suggest monitoring metrics to track progress
+
+5. FORMAT YOUR RESPONSES:
+   - Use clear, numbered points for recommendations
+   - Include specific numbers and metrics when referencing their data
+   - Highlight both opportunities (high-performing patches) and areas for improvement
+   - End with actionable next steps
+
+RESPONSE TONE:
+- Professional yet conversational and encouraging
+- Data-driven and evidence-based
+- Practical and implementable
+- Focused on sustainable improvement
+
+When the farmer provides analytics data, use it as the foundation for all advice. If specific data is missing, ask clarifying questions before providing general recommendations.
+        """.trimIndent()
     }
 }

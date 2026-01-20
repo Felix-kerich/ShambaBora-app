@@ -50,7 +50,14 @@ class FarmExpenseViewModel @Inject constructor(
     fun loadExpenses(cropType: String? = null, category: String? = null, page: Int = 0, size: Int = 10) {
         viewModelScope.launch {
             _expensesState.value = Resource.Loading()
-            _expensesState.value = repository.getExpenses(cropType, category, page, size)
+            _expensesState.value = repository.getExpenses(cropType, category, patchId = null, page, size)
+        }
+    }
+    
+    fun loadExpensesByPatch(patchId: Long, page: Int = 0, size: Int = 10) {
+        viewModelScope.launch {
+            _expensesState.value = Resource.Loading()
+            _expensesState.value = repository.getExpenses(cropType = null, category = null, patchId = patchId, page, size)
         }
     }
     

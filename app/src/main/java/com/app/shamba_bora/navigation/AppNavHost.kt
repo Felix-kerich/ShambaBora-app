@@ -39,6 +39,7 @@ import com.app.shamba_bora.ui.screens.farm.ExpenseDetailScreen
 import com.app.shamba_bora.ui.screens.farm.YieldsScreen
 import com.app.shamba_bora.ui.screens.farm.YieldDetailScreen
 import com.app.shamba_bora.ui.screens.weather.WeatherScreen
+import com.app.shamba_bora.ui.screens.saved_advice.SavedAdvicesScreen
 import com.app.shamba_bora.ui.screens.messaging.ConversationListScreen
 import com.app.shamba_bora.ui.screens.messaging.ChatScreen
 import com.app.shamba_bora.ui.screens.messaging.GroupChatScreen
@@ -213,6 +214,9 @@ fun AppNavHost(
                 },
                 onNavigateToGroups = { navController.navigate(Screen.Groups.route) },
                 onNavigateToMessages = { navController.navigate(Screen.Messages.route) },
+                onNavigateToMessageUser = { userId, userName ->
+                    navController.navigate(Screen.Conversation.createRoute(userId, userName))
+                },
                 onNavigateToGroupDetail = { groupId ->
                     navController.navigate(Screen.GroupDetail.createRoute(groupId))
                 }
@@ -258,7 +262,8 @@ fun AppNavHost(
                 onNavigateToActivities = { navController.navigate(Screen.Activities.route) },
                 onNavigateToExpenses = { navController.navigate(Screen.Expenses.route) },
                     onNavigateToYields = { navController.navigate(Screen.Yields.route) },
-                    onNavigateToPatches = { navController.navigate(Screen.Patches.route) }
+                    onNavigateToPatches = { navController.navigate(Screen.Patches.route) },
+                    onNavigateToAnalytics = { navController.navigate(Screen.FarmAnalytics.route) }
             )
         }
         
@@ -290,7 +295,21 @@ fun AppNavHost(
                 val patchId = backStackEntry.arguments?.getLong("patchId") ?: 0L
                 PatchDetailScreenWrapper(
                     patchId = patchId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToEdit = { id ->
+                        navController.navigate(Screen.EditPatch.createRoute(id))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.EditPatch.route,
+                arguments = listOf(navArgument("patchId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val patchId = backStackEntry.arguments?.getLong("patchId") ?: 0L
+                com.app.shamba_bora.ui.screens.records.EditPatchScreenWrapper(
+                    patchId = patchId,
+                    onBack = { navController.popBackStack() }
                 )
             }
         
@@ -307,12 +326,6 @@ fun AppNavHost(
             )
         }
         
-        composable(Screen.CreateActivity.route) {
-            com.app.shamba_bora.ui.screens.records.CreateActivityScreenWrapper(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        
         composable(
             route = Screen.ActivityDetail.route,
             arguments = listOf(navArgument("activityId") { type = NavType.LongType })
@@ -320,7 +333,27 @@ fun AppNavHost(
             val activityId = backStackEntry.arguments?.getLong("activityId") ?: 0L
             ActivityDetailScreen(
                 activityId = activityId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { id ->
+                    navController.navigate(Screen.EditActivity.createRoute(id))
+                }
+            )
+        }
+        
+        composable(Screen.CreateActivity.route) {
+            com.app.shamba_bora.ui.screens.records.CreateActivityScreenWrapper(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.EditActivity.route,
+            arguments = listOf(navArgument("activityId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val activityId = backStackEntry.arguments?.getLong("activityId") ?: 0L
+            com.app.shamba_bora.ui.screens.records.EditActivityScreenWrapper(
+                activityId = activityId,
+                onBack = { navController.popBackStack() }
             )
         }
         
@@ -336,12 +369,6 @@ fun AppNavHost(
             )
         }
         
-        composable(Screen.CreateExpense.route) {
-            com.app.shamba_bora.ui.screens.records.CreateExpenseScreenWrapper(
-                onBack = { navController.popBackStack() }
-            )
-        }
-        
         composable(
             route = Screen.ExpenseDetail.route,
             arguments = listOf(navArgument("expenseId") { type = NavType.LongType })
@@ -349,7 +376,27 @@ fun AppNavHost(
             val expenseId = backStackEntry.arguments?.getLong("expenseId") ?: 0L
             ExpenseDetailScreen(
                 expenseId = expenseId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { id ->
+                    navController.navigate(Screen.EditExpense.createRoute(id))
+                }
+            )
+        }
+        
+        composable(Screen.CreateExpense.route) {
+            com.app.shamba_bora.ui.screens.records.CreateExpenseScreenWrapper(
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = Screen.EditExpense.route,
+            arguments = listOf(navArgument("expenseId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val expenseId = backStackEntry.arguments?.getLong("expenseId") ?: 0L
+            com.app.shamba_bora.ui.screens.records.EditExpenseScreenWrapper(
+                expenseId = expenseId,
+                onBack = { navController.popBackStack() }
             )
         }
         
@@ -378,7 +425,21 @@ fun AppNavHost(
             val yieldId = backStackEntry.arguments?.getLong("yieldId") ?: 0L
             YieldDetailScreen(
                 yieldId = yieldId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { id ->
+                    navController.navigate(Screen.EditYield.createRoute(id))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.EditYield.route,
+            arguments = listOf(navArgument("yieldId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val yieldId = backStackEntry.arguments?.getLong("yieldId") ?: 0L
+            com.app.shamba_bora.ui.screens.records.EditYieldScreenWrapper(
+                yieldId = yieldId,
+                onBack = { navController.popBackStack() }
             )
         }
         
@@ -388,11 +449,18 @@ fun AppNavHost(
             )
         }
         
+        // Saved Advice Screen
+        composable(Screen.SavedAdvices.route) {
+            SavedAdvicesScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
         // Messaging Screens
         composable(Screen.Messages.route) {
             ConversationListScreen(
-                onNavigateToChat = { otherUserId ->
-                    navController.navigate(Screen.Conversation.createRoute(otherUserId, "User $otherUserId"))
+                onNavigateToChat = { otherUserId, userName ->
+                    navController.navigate(Screen.Conversation.createRoute(otherUserId, userName))
                 },
                 onNavigateToGroups = { navController.navigate(Screen.Groups.route) }
             )
@@ -473,6 +541,19 @@ fun AppNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 }
+            )
+        }
+        
+        // Analytics Screens
+        composable(Screen.FarmAnalytics.route) {
+            com.app.shamba_bora.ui.screens.records.FarmAnalyticsScreen(
+                onNavigateToPatchComparison = { navController.navigate(Screen.PatchComparison.route) }
+            )
+        }
+        
+        composable(Screen.PatchComparison.route) {
+            com.app.shamba_bora.ui.screens.records.PatchComparisonScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

@@ -23,6 +23,7 @@ import com.app.shamba_bora.viewmodel.FarmExpenseViewModel
 fun ExpenseDetailScreen(
     expenseId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToEdit: (Long) -> Unit = {},
     viewModel: FarmExpenseViewModel = hiltViewModel()
 ) {
     val expenseState by viewModel.expenseState.collectAsState()
@@ -42,6 +43,9 @@ fun ExpenseDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { onNavigateToEdit(expenseId) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Expense")
+                    }
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }
@@ -152,7 +156,7 @@ fun ExpenseDetailScreen(
                                     Divider(modifier = Modifier.padding(vertical = 12.dp))
                                     
                                     DetailRow(
-                                        icon = Icons.Default.Info,
+                                        icon = Icons.Default.LocalFlorist,
                                         label = "Crop Type",
                                         value = expense.cropType
                                     )

@@ -156,7 +156,7 @@ fun MyGroupsList(
                         modifier = Modifier.padding(32.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Icons.Default.Groups,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -293,7 +293,7 @@ fun GroupCard(
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = Icons.Default.PeopleAlt,
                     contentDescription = null,
                     modifier = Modifier.padding(16.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer

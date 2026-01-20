@@ -13,11 +13,12 @@ class FarmActivityRepository @Inject constructor(
 ) {
     suspend fun getActivities(
         activityType: String? = null,
+        patchId: Long? = null,
         page: Int = 0,
         size: Int = 10
     ): Resource<PageResponse<FarmActivity>> {
         return try {
-            val response = apiService.getActivities(activityType, page, size)
+            val response = apiService.getActivities(activityType, patchId, page, size)
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!)
             } else {

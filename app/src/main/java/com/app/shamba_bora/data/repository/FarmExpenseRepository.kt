@@ -12,11 +12,12 @@ class FarmExpenseRepository @Inject constructor(
     suspend fun getExpenses(
         cropType: String? = null,
         category: String? = null,
+        patchId: Long? = null,
         page: Int = 0,
         size: Int = 10
     ): Resource<PageResponse<FarmExpense>> {
         return try {
-            val response = apiService.getExpenses(cropType, category, page, size)
+            val response = apiService.getExpenses(cropType, category, patchId, page, size)
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!)
             } else {

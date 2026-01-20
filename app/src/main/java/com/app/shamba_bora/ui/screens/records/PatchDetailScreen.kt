@@ -11,9 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.*
 import com.app.shamba_bora.ui.components.LoadingIndicator
@@ -26,6 +31,7 @@ import java.time.LocalDate
 fun PatchDetailScreenWrapper(
     patchId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToEdit: (Long) -> Unit = {},
     viewModel: PatchViewModel = hiltViewModel()
 ) {
     val patchState by viewModel.patchState.collectAsState()
@@ -53,7 +59,8 @@ fun PatchDetailScreenWrapper(
             state.data?.let { patch ->
                 PatchDetailScreen(
                     patch = patch,
-                    onNavigateBack = onNavigateBack
+                    onNavigateBack = onNavigateBack,
+                    onNavigateToEdit = onNavigateToEdit
                 )
             }
         }
@@ -63,8 +70,13 @@ fun PatchDetailScreenWrapper(
 @Composable
 fun PatchDetailScreen(
     patch: MaizePatchDTO,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToEdit: (Long) -> Unit = {},
+    viewModel: PatchViewModel = hiltViewModel()
 ) {
+    var showAnalyticsModal by remember { mutableStateOf(false) }
+    val patchSummaryState by viewModel.patchSummaryState.collectAsState()
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -72,6 +84,13 @@ fun PatchDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (patch.id != null) {
+                        IconButton(onClick = { onNavigateToEdit(patch.id!!) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit Patch")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -91,6 +110,36 @@ fun PatchDetailScreen(
             // Patch Header Card
             item {
                 PatchHeaderCard(patch = patch)
+            }
+
+            // View Analytics Button
+            item {
+                Button(
+                    onClick = {
+                        if (patch.id != null) {
+                            viewModel.loadPatchSummary(patch.id!!)
+                            showAnalyticsModal = true
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary
+                    ),
+                    enabled = patch.id != null
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BarChart,
+                        contentDescription = "Analytics",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "View Analytics",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             // Patch Info Card
@@ -129,6 +178,16 @@ fun PatchDetailScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+        
+        // Analytics Modal
+        if (showAnalyticsModal && patch.id != null) {
+            PatchAnalyticsModal(
+                patchSummaryState = patchSummaryState,
+                patchId = patch.id!!,
+                onDismiss = { showAnalyticsModal = false },
+                viewModel = viewModel
+            )
         }
     }
 }
@@ -169,7 +228,7 @@ private fun PatchHeaderCard(patch: MaizePatchDTO) {
                     )
                 }
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = Icons.Default.Grain,
                     contentDescription = "Patch",
                     modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
@@ -181,8 +240,8 @@ private fun PatchHeaderCard(patch: MaizePatchDTO) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 BadgeChip(label = "${patch.year}", icon = Icons.Default.DateRange)
-                BadgeChip(label = patch.season, icon = Icons.Default.Info)
-                BadgeChip(label = "${patch.area} ${patch.areaUnit}", icon = Icons.Default.Settings)
+                BadgeChip(label = patch.season, icon = Icons.Default.Cloud)
+                BadgeChip(label = "${patch.area} ${patch.areaUnit}", icon = Icons.Default.Landscape)
             }
         }
     }
@@ -653,7 +712,7 @@ private fun EmptyActivityState() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(
-            imageVector = Icons.Default.Info,
+            imageVector = Icons.Default.Grain,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -670,5 +729,475 @@ private fun EmptyActivityState() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+    }
+}
+
+@Composable
+private fun PatchAnalyticsModal(
+    patchSummaryState: Resource<PatchSummaryDTO>,
+    patchId: Long,
+    onDismiss: () -> Unit,
+    viewModel: PatchViewModel
+) {
+    var dismissOnCompletion by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(patchSummaryState) {
+        if (dismissOnCompletion && patchSummaryState is Resource.Success) {
+            dismissOnCompletion = false
+        }
+    }
+    
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .clip(RoundedCornerShape(16.dp)),
+            color = MaterialTheme.colorScheme.background,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            when (patchSummaryState) {
+                is Resource.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator()
+                            Text("Loading Analytics...")
+                        }
+                    }
+                }
+                is Resource.Error -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = "Error",
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Failed to load analytics",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = patchSummaryState.message ?: "Unknown error",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Button(onClick = { viewModel.loadPatchSummary(patchId) }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Retry",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Retry")
+                        }
+                    }
+                }
+                is Resource.Success -> {
+                    val summary = patchSummaryState.data
+                    if (summary != null) {
+                        PatchAnalyticsContent(
+                            summary = summary,
+                            onDismiss = onDismiss
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PatchAnalyticsContent(
+    summary: PatchSummaryDTO,
+    onDismiss: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 600.dp)
+    ) {
+        // Header with close button
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Patch Analytics",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = summary.patchName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+        }
+        
+        // Basic Info Pills
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AnalyticsPill(
+                    label = summary.season,
+                    value = "${summary.year}",
+                    icon = Icons.Default.DateRange,
+                    modifier = Modifier.weight(1f)
+                )
+                AnalyticsPill(
+                    label = "Crop",
+                    value = summary.cropType,
+                    icon = Icons.Default.Grain,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        
+        // Financial Metrics
+        item {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Financial Summary",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        AnalyticsRow(
+                            label = "Total Revenue",
+                            value = "KES ${String.format("%.0f", summary.totalRevenue)}",
+                            color = 0xFF4CAF50
+                        )
+                        AnalyticsRow(
+                            label = "Total Expenses",
+                            value = "KES ${String.format("%.0f", summary.totalExpenses)}",
+                            color = 0xFFF44336
+                        )
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        AnalyticsRow(
+                            label = "Net Profit",
+                            value = "KES ${String.format("%.0f", summary.profit)}",
+                            color = 0xFF2196F3,
+                            isBold = true
+                        )
+                    }
+                }
+            }
+        }
+        
+        // Yield & Cost Metrics
+        item {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Yield & Production",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AnalyticsCard(
+                        label = "Total Yield",
+                        value = "${String.format("%.0f", summary.totalYield)} kg",
+                        color = 0xFF00BCD4,
+                        modifier = Modifier.weight(1f)
+                    )
+                    AnalyticsCard(
+                        label = "Cost/Kg",
+                        value = "${String.format("%.2f", summary.costPerKg)} KES",
+                        color = 0xFFFF9800,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        
+        // Performance Metrics
+        item {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Performance Metrics",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AnalyticsCard(
+                        label = "Profit/Kg",
+                        value = "${String.format("%.2f", summary.profitPerKg)} KES",
+                        color = 0xFF9C27B0,
+                        modifier = Modifier.weight(1f)
+                    )
+                    AnalyticsCard(
+                        label = "ROI",
+                        value = "${String.format("%.2f", summary.roiPercentage)}%",
+                        color = 0xFFE91E63,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        
+        // Area Information
+        if (summary.area != null && summary.area!! > 0) {
+            item {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Farm Information",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    AnalyticsRow(
+                        label = "Area",
+                        value = "${String.format("%.2f", summary.area)} ${summary.areaUnit.uppercase()}"
+                    )
+                }
+            }
+        }
+        
+        // Activities
+        if (summary.activityTypes.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Activities",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        summary.activityTypes.forEach { activity ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp)),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = activity,
+                                    modifier = Modifier.padding(12.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Expense Summaries
+        if (summary.expenseSummaries.isNotEmpty()) {
+            item {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "Expense Breakdown",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            summary.expenseSummaries.forEach { summary ->
+                                Text(
+                                    text = summary,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Close Button at bottom
+        item {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+                    .height(44.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Close", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsPill(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp)),
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsRow(
+    label: String,
+    value: String,
+    color: Long = 0xFF1976D2,
+    isBold: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.SemiBold,
+            color = Color(color)
+        )
+    }
+}
+
+@Composable
+private fun AnalyticsCard(
+    label: String,
+    value: String,
+    color: Long,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp)),
+        color = Color(color).copy(alpha = 0.1f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(color),
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color(color)
+            )
+        }
     }
 }

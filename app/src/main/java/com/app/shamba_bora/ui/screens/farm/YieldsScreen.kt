@@ -5,12 +5,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -32,13 +35,23 @@ fun YieldsScreen(
     viewModel: YieldRecordViewModel = hiltViewModel()
 ) {
     val yieldsState by viewModel.yieldsState.collectAsState()
+    val patchesState by viewModel.patchesState.collectAsState()
     val totalYieldState by viewModel.totalYieldState.collectAsState()
     val totalRevenueState by viewModel.totalRevenueState.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedPatchId by remember { mutableStateOf<Long?>(null) }
+    var showPatchFilter by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
         viewModel.loadYieldRecords()
         viewModel.loadTotalYield()
         viewModel.loadTotalRevenue()
+        viewModel.loadPatches()
+    }
+    
+    val patches = when (patchesState) {
+        is Resource.Success -> patchesState.data ?: emptyList()
+        else -> emptyList()
     }
     
     Scaffold(
@@ -76,7 +89,7 @@ fun YieldsScreen(
                 )
             }
             is Resource.Success -> {
-                val yields = state.data?.content ?: emptyList()
+                val allYields = state.data?.content ?: emptyList()
                 val totalYield = when (val totalState = totalYieldState) {
                     is Resource.Success -> totalState.data ?: 0.0
                     else -> 0.0
@@ -86,6 +99,16 @@ fun YieldsScreen(
                     else -> 0.0
                 }
                 
+                // Apply filters
+                val filteredYields = allYields.filter { yield ->
+                    val matchesSearch = searchQuery.isEmpty() || 
+                        yield.cropType?.contains(searchQuery, ignoreCase = true) == true
+                    
+                    val matchesPatch = selectedPatchId == null
+                    
+                    matchesSearch && matchesPatch
+                }
+                
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -93,6 +116,73 @@ fun YieldsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    
+                    // Search and Filter Bar
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Search field
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                placeholder = { Text("Search yields...") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Search, contentDescription = "Search")
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                shape = MaterialTheme.shapes.large,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+                            
+                            // Patch Filter Button
+                            Button(
+                                onClick = { showPatchFilter = !showPatchFilter },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors()
+                            ) {
+                                Icon(Icons.Default.FilterList, contentDescription = "Filter", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    selectedPatchId?.let { "Patch: $it" } ?: "Filter by Patch",
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Start
+                                )
+                                if (selectedPatchId != null) {
+                                    IconButton(
+                                        onClick = { selectedPatchId = null },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear filter", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                            
+                            // Patch Filter Dropdown
+                            if (showPatchFilter) {
+                                PatchFilterDropdown(
+                                    patches = patches,
+                                    selectedPatchId = selectedPatchId,
+                                    onPatchSelected = { patchId ->
+                                        selectedPatchId = patchId
+                                        showPatchFilter = false
+                                    },
+                                    onDismiss = { showPatchFilter = false }
+                                )
+                            }
+                        }
+                    }
                     
                     // Summary Cards
                     item {
@@ -152,7 +242,7 @@ fun YieldsScreen(
                         }
                     }
                     
-                    if (yields.isEmpty()) {
+                    if (filteredYields.isEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -171,12 +261,15 @@ fun YieldsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "No yield records yet",
+                                        text = "No yield records found",
                                         style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Tap + to record your first harvest",
+                                        text = if (searchQuery.isNotEmpty() || selectedPatchId != null)
+                                            "Try adjusting your search or filters"
+                                        else
+                                            "Tap + to record your first harvest",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -184,7 +277,7 @@ fun YieldsScreen(
                             }
                         }
                     } else{
-                        items(yields) { yield ->
+                        items(filteredYields) { yield ->
                             YieldCard(
                                 yield = yield,
                                 onClick = { yield.id?.let { onNavigateToYieldDetail(it) } }

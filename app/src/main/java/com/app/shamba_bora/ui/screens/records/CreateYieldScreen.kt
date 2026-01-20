@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.*
+import com.app.shamba_bora.data.constants.FarmingInputs
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.ui.components.records.*
@@ -190,11 +191,13 @@ fun CreateYieldScreen(
                         onGradeChange = { qualityGrade = it }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    FormTextField(
+                    SearchableDropdown(
                         label = "Storage Location",
                         value = storageLocation,
                         onValueChange = { storageLocation = it },
-                        placeholder = "Where is the yield stored?"
+                        options = FarmingInputs.STORAGE_LOCATIONS,
+                        placeholder = "Select or type storage...",
+                        allowCustomInput = true
                     )
                 }
             }
@@ -209,11 +212,13 @@ fun CreateYieldScreen(
                         placeholder = "e.g., 40.00"
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    FormTextField(
+                    SearchableDropdown(
                         label = "Buyer Name",
                         value = buyer,
                         onValueChange = { buyer = it },
-                        placeholder = "Who bought the yield?"
+                        options = FarmingInputs.BUYERS,
+                        placeholder = "Select or type buyer...",
+                        allowCustomInput = true
                     )
 
                     if (marketPrice.isNotEmpty() && (marketPrice.toDoubleOrNull() ?: 0.0) > 0 && yieldAmount.isNotEmpty() && (yieldAmount.toDoubleOrNull() ?: 0.0) > 0) {

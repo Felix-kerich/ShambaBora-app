@@ -18,18 +18,30 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
         fun createRoute(activityId: Long) = "activity_detail/$activityId"
     }
     object CreateActivity : Screen("create_activity", "Create Activity", "add")
+    object EditActivity : Screen("edit_activity/{activityId}", "Edit Activity", "edit") {
+        fun createRoute(activityId: Long) = "edit_activity/$activityId"
+    }
     object Expenses : Screen("expenses", "Expenses", "payments")
     object ExpenseDetail : Screen("expense_detail/{expenseId}", "Expense Details", "info") {
         fun createRoute(expenseId: Long) = "expense_detail/$expenseId"
     }
     object CreateExpense : Screen("create_expense", "Create Expense", "add")
+    object EditExpense : Screen("edit_expense/{expenseId}", "Edit Expense", "edit") {
+        fun createRoute(expenseId: Long) = "edit_expense/$expenseId"
+    }
     object Yields : Screen("yields", "Yields", "inventory")
     object YieldDetail : Screen("yield_detail/{yieldId}", "Yield Details", "info") {
         fun createRoute(yieldId: Long) = "yield_detail/$yieldId"
     }
     object CreateYield : Screen("create_yield", "Create Yield", "add")
+    object EditYield : Screen("edit_yield/{yieldId}", "Edit Yield", "edit") {
+        fun createRoute(yieldId: Long) = "edit_yield/$yieldId"
+    }
     object Patches : Screen("patches", "My Patches", "landscape")
     object CreatePatch : Screen("create_patch", "Create Patch", "add")
+    object EditPatch : Screen("edit_patch/{patchId}", "Edit Patch", "edit") {
+        fun createRoute(patchId: Long) = "edit_patch/$patchId"
+    }
     object PatchDetail : Screen("patch_detail/{patchId}", "Patch Details", "info") {
         fun createRoute(patchId: Long) = "patch_detail/$patchId"
     }
@@ -38,6 +50,10 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     object Profile : Screen("profile", "Profile", "person")
     object Settings : Screen("settings", "Settings", "settings")
     object FarmerProfile : Screen("farmer_profile", "Farmer Profile", "badge")
+    
+    // Analytics
+    object FarmAnalytics : Screen("farm_analytics", "Farm Analytics", "analytics")
+    object PatchComparison : Screen("patch_comparison", "Compare Patches", "compare_arrows")
     
     // Marketplace Screens
     object ProductDetails : Screen("product_details/{productId}", "Product Details", "info") {
@@ -71,5 +87,8 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     
     // Dashboard
     object Dashboard : Screen("dashboard", "Dashboard", "dashboard")
+    
+    // Saved Advice
+    object SavedAdvices : Screen("saved_advices", "Saved Farm Advice", "bookmark")
 }
 

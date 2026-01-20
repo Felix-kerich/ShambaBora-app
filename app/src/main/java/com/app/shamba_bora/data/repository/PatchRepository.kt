@@ -2,7 +2,7 @@ package com.app.shamba_bora.data.repository
 
 import android.util.Log
 import com.app.shamba_bora.data.model.MaizePatchDTO
-import com.app.shamba_bora.data.model.PatchComparisonDTO
+import com.app.shamba_bora.data.model.PatchComparisonResponse
 import com.app.shamba_bora.data.model.PatchSummaryDTO
 import com.app.shamba_bora.data.network.ApiService
 import com.app.shamba_bora.utils.Resource
@@ -99,7 +99,7 @@ class PatchRepository @Inject constructor(
         }
     }
     
-    suspend fun comparePatches(patchIds: List<Long>): Resource<PatchComparisonDTO> {
+    suspend fun comparePatches(patchIds: List<Long>): Resource<PatchComparisonResponse> {
         return try {
             val response = apiService.comparePatches(patchIds)
             if (response.isSuccessful && response.body() != null) {

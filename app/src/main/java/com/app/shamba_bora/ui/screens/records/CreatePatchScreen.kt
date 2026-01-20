@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.*
+import com.app.shamba_bora.data.constants.FarmingInputs
 import com.app.shamba_bora.ui.components.records.*
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.PatchViewModel
@@ -90,11 +91,11 @@ fun CreatePatchScreen(
                 }
 
                 item {
-                    FormTextField(
+                    LocationPickerField(
                         label = "Location",
-                        value = location,
-                        onValueChange = { location = it },
-                        placeholder = "e.g., Field 1",
+                        location = location,
+                        onLocationChange = { location = it },
+                        placeholder = "Field name or use GPS",
                         isRequired = true
                     )
                 }

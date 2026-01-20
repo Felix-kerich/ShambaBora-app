@@ -19,6 +19,7 @@ import coil.compose.AsyncImage
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.ui.components.CreatePostModal
+import com.app.shamba_bora.ui.screens.community.FeedScreen as EnhancedFeedScreen
 import com.app.shamba_bora.utils.Resource
 import com.app.shamba_bora.viewmodel.CommunityViewModel
 
@@ -28,6 +29,7 @@ fun CollaborationScreen(
     onNavigateToPostDetails: (Long) -> Unit,
     onNavigateToGroups: () -> Unit,
     onNavigateToMessages: () -> Unit,
+    onNavigateToMessageUser: (Long, String) -> Unit = { _, _ -> },
     onNavigateToCreatePost: () -> Unit = {},
     onNavigateToUserSearch: () -> Unit = {},
     onNavigateToGroupDetail: (Long) -> Unit = {},
@@ -45,23 +47,17 @@ fun CollaborationScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 actions = {
-                    if (selectedTab == 2) {
+                    if (selectedTab == 0) {
+                        IconButton(onClick = { showCreatePostModal = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Create Post")
+                        }
+                    } else if (selectedTab == 2) {
                         IconButton(onClick = onNavigateToUserSearch) {
                             Icon(Icons.Default.AddCircle, contentDescription = "Search Users")
                         }
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            if (selectedTab == 0) {
-                FloatingActionButton(
-                    onClick = { showCreatePostModal = true },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Create Post")
-                }
-            }
         }
     ) { paddingValues ->
         Column(
@@ -93,9 +89,15 @@ fun CollaborationScreen(
         
             // Content
             when (selectedTab) {
-                0 -> FeedScreen(
-                    onNavigateToPostDetails = onNavigateToPostDetails,
-                    onNavigateToCreatePost = onNavigateToCreatePost,
+                0 -> EnhancedFeedScreen(
+                    onNavigateToPostDetail = onNavigateToPostDetails,
+                    onNavigateToMessages = { onNavigateToMessages() },
+                    onNavigateToProfile = { /* TODO */ },
+                    onNavigateToConversation = { userId, userName ->
+                        onNavigateToMessageUser(userId, userName)
+                    },
+                    showFAB = false,  // Hide FAB since CollaborationScreen has its own
+                    showTopBar = false,  // Hide TopBar since CollaborationScreen has its own
                     viewModel = viewModel
                 )
                 1 -> GroupsScreen(

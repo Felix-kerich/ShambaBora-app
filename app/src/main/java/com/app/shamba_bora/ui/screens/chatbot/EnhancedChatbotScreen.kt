@@ -18,10 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.app.shamba_bora.ui.utils.renderMarkdown
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.ChatbotConversation
@@ -49,6 +51,10 @@ fun EnhancedChatbotScreen(
     var showFarmAdviceNotification by remember { mutableStateOf(false) }
     var showFarmAdviceReadyDialog by remember { mutableStateOf(false) }
     var farmAdviceReady by remember { mutableStateOf<FarmAdviceResponse?>(null) }
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var saveAdviceTitle by remember { mutableStateOf("") }
+    
+    val snackbarHostState = remember { SnackbarHostState() }
     
     val conversations by viewModel.conversations.collectAsState()
     val currentConversation by viewModel.currentConversation.collectAsState()
@@ -58,6 +64,9 @@ fun EnhancedChatbotScreen(
     val farmAdviceBackgroundLoading by viewModel.farmAdviceBackgroundLoading.collectAsState()
     val showFarmAdviceNotificationFlow by viewModel.showFarmAdviceNotification.collectAsState()
     val pendingMessage by viewModel.pendingMessage.collectAsState()
+    val useFarmContext by viewModel.useFarmContext.collectAsState()
+    val farmContext by viewModel.farmContext.collectAsState()
+    val farmContextLoading by viewModel.farmContextLoading.collectAsState()
     
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -132,7 +141,13 @@ fun EnhancedChatbotScreen(
                 onNewChat = {
                     viewModel.startNewConversation()
                 },
-                onGetAdvice = { viewModel.getFarmAdvice() }
+                onGetAdvice = { viewModel.getFarmAdvice() },
+                useFarmContext = useFarmContext,
+                onFarmContextToggle = { enabled ->
+                    viewModel.toggleFarmContext(enabled)
+                },
+                farmContextLoading = farmContextLoading,
+                farmContextReady = farmContext != null
             )
             
             // Messages
@@ -255,6 +270,14 @@ fun EnhancedChatbotScreen(
                     // Now only the close button closes the sidebar
             )
         }
+        
+        // Snackbar for save success/error messages
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp)
+        )
     }
     
     // Delete Confirmation Dialog
@@ -289,6 +312,75 @@ fun EnhancedChatbotScreen(
             onDismiss = {
                 showFarmAdviceReadyDialog = false
                 viewModel.clearFarmAdvice()
+            },
+            onSave = {
+                showSaveDialog = true
+            }
+        )
+    }
+    
+    // Save Advice Dialog
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showSaveDialog = false
+                saveAdviceTitle = ""
+            },
+            title = { Text("Save Farm Advice") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Give this advice a title so you can find it later:")
+                    OutlinedTextField(
+                        value = saveAdviceTitle,
+                        onValueChange = { saveAdviceTitle = it },
+                        label = { Text("Title") },
+                        placeholder = { Text("e.g., Spring 2024 Advice") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (saveAdviceTitle.isNotBlank()) {
+                            viewModel.saveCurrentAdvice(
+                                title = saveAdviceTitle,
+                                onSuccess = {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Advice saved successfully!",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                    showSaveDialog = false
+                                    saveAdviceTitle = ""
+                                },
+                                onError = { error ->
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = error,
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                    showSaveDialog = false
+                                    saveAdviceTitle = ""
+                                }
+                            )
+                        }
+                    },
+                    enabled = saveAdviceTitle.isNotBlank()
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showSaveDialog = false
+                    saveAdviceTitle = ""
+                }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -339,12 +431,13 @@ fun EnhancedChatbotScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            // Start background polling and notify the UI
+                            // Start background polling, clear the loading dialog, and show notification
                             viewModel.startFarmAdviceBackgroundPolling()
+                            viewModel.clearFarmAdvice() // This closes the dialog
                             showFarmAdviceNotification = true
                         }
                     ) {
-                        Text("Processing in background")
+                        Text("Process in background")
                     }
                 },
                 dismissButton = {
@@ -459,72 +552,194 @@ fun ChatHeader(
     title: String,
     onMenuClick: () -> Unit,
     onNewChat: () -> Unit,
-    onGetAdvice: () -> Unit
+    onGetAdvice: () -> Unit,
+    useFarmContext: Boolean = false,
+    onFarmContextToggle: (Boolean) -> Unit = {},
+    farmContextLoading: Boolean = false,
+    farmContextReady: Boolean = false
 ) {
+    var showContextInfo by remember { mutableStateOf(false) }
+    
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.primary,
         shadowElevation = 4.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-            
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+            // Main header row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Build,
-                    contentDescription = "AI",
-                    modifier = Modifier.padding(10.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menu",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+                
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Build,
+                        contentDescription = "AI",
+                        modifier = Modifier.padding(10.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Online • Powered by RAG",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                    )
+                }
+                
+                Button(
+                    onClick = onGetAdvice,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Get Advice")
+                }
+                
+                IconButton(onClick = onNewChat) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "New Chat",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+            
+            // Farm Context Toggle Section
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "📊 Share Farm Data",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Medium
+                    )
+                    
+                    if (farmContextLoading) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else if (useFarmContext && farmContextReady) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFF4CAF50).copy(alpha = 0.3f))
+                                .padding(4.dp),
+                            color = Color.Transparent
+                        ) {
+                            Text(
+                                text = "✓ Ready",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF4CAF50),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    
+                    IconButton(
+                        onClick = { showContextInfo = !showContextInfo },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Info",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+                
+                Checkbox(
+                    checked = useFarmContext,
+                    onCheckedChange = onFarmContextToggle,
+                    modifier = Modifier.scale(0.8f),
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = Color(0xFF4CAF50),
+                        uncheckedColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
+                    )
                 )
             }
             
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "Online • Powered by RAG",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                )
-            }
-            
-            IconButton(onClick = onGetAdvice) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Get Farm Advice",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-            
-            IconButton(onClick = onNewChat) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "New Chat",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+            // Context info expansion
+            AnimatedVisibility(visible = showContextInfo) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.05f),
+                            shape = RoundedCornerShape(6.dp)
+                        ),
+                    color = Color.Transparent
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "When enabled, the AI will have access to:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "• Your farm analytics and performance\n• All patches and their details\n• Recent activities and expenses\n• Yield records and revenue\n• Farmer profile and location",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -848,12 +1063,12 @@ fun MessageBubble(message: ChatbotMessage) {
                 )
             ) {
                 Text(
-                    text = message.content,
+                    text = renderMarkdown(message.content),
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (message.role == "user") 
-                        MaterialTheme.colorScheme.onPrimary 
-                    else 
+                    color = if (message.role == "user")
+                        MaterialTheme.colorScheme.onPrimary
+                    else
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -909,21 +1124,21 @@ fun PendingMessageBubble(message: String, hasError: Boolean = false, onRetry: ()
                     bottomEnd = 4.dp
                 )
             ) {
-                Column(
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (hasError)
-                                MaterialTheme.colorScheme.onErrorContainer
-                            else
-                                MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = renderMarkdown(message),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (hasError)
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    else
+                                        MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.weight(1f)
+                                )
                         Spacer(modifier = Modifier.width(8.dp))
                         if (hasError) {
                             // Show retry icon

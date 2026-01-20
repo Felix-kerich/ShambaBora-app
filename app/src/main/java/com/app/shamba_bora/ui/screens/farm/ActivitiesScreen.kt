@@ -6,12 +6,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -34,9 +37,19 @@ fun ActivitiesScreen(
     viewModel: FarmActivityViewModel = hiltViewModel()
 ) {
     val activitiesState by viewModel.activitiesState.collectAsState()
+    val patchesState by viewModel.patchesState.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedPatchId by remember { mutableStateOf<Long?>(null) }
+    var showPatchFilter by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
         viewModel.loadActivities()
+        viewModel.loadPatches()
+    }
+    
+    val patches = when (patchesState) {
+        is Resource.Success -> patchesState.data ?: emptyList()
+        else -> emptyList()
     }
     
     Scaffold(
@@ -74,7 +87,20 @@ fun ActivitiesScreen(
                 )
             }
             is Resource.Success -> {
-                val activities = state.data?.content ?: emptyList()
+                val allActivities = state.data?.content ?: emptyList()
+                
+                // Apply filters
+                val filteredActivities = allActivities.filter { activity ->
+                    val matchesSearch = searchQuery.isEmpty() || 
+                        activity.activityType?.contains(searchQuery, ignoreCase = true) == true ||
+                        activity.cropType?.contains(searchQuery, ignoreCase = true) == true ||
+                        activity.description?.contains(searchQuery, ignoreCase = true) == true
+                    
+                    val matchesPatch = selectedPatchId == null
+                    
+                    matchesSearch && matchesPatch
+                }
+                
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -82,6 +108,74 @@ fun ActivitiesScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Search and Filter Bar
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Search field
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                placeholder = { Text("Search activities...") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Search, contentDescription = "Search")
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                shape = MaterialTheme.shapes.large,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                )
+                            )
+                            
+                            // Patch Filter Button
+                            Button(
+                                onClick = { showPatchFilter = !showPatchFilter },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.outlinedButtonColors()
+                            ) {
+                                Icon(Icons.Default.FilterList, contentDescription = "Filter", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    selectedPatchId?.let { "Patch: $it" } ?: "Filter by Patch",
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Start
+                                )
+                                if (selectedPatchId != null) {
+                                    IconButton(
+                                        onClick = { selectedPatchId = null },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear filter", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                            
+                            // Patch Filter Dropdown
+                            if (showPatchFilter) {
+                                PatchFilterDropdown(
+                                    patches = patches,
+                                    selectedPatchId = selectedPatchId,
+                                    onPatchSelected = { patchId ->
+                                        selectedPatchId = patchId
+                                        showPatchFilter = false
+                                    },
+                                    onDismiss = { showPatchFilter = false }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Activities info card
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -104,7 +198,7 @@ fun ActivitiesScreen(
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column {
                                     Text(
-                                        text = "${activities.size} Activities",
+                                        text = "${filteredActivities.size} Activities",
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -119,7 +213,7 @@ fun ActivitiesScreen(
                         }
                     }
                     
-                    if (activities.isEmpty()) {
+                    if (filteredActivities.isEmpty()) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -138,12 +232,15 @@ fun ActivitiesScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "No activities yet",
+                                        text = "No activities found",
                                         style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Tap + to add your first activity",
+                                        text = if (searchQuery.isNotEmpty() || selectedPatchId != null)
+                                            "Try adjusting your search or filters"
+                                        else
+                                            "Tap + to add your first activity",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -151,7 +248,7 @@ fun ActivitiesScreen(
                             }
                         }
                     } else {
-                        items(activities) { activity ->
+                        items(filteredActivities) { activity ->
                             ActivityCard(
                                 activity = activity,
                                 onViewDetails = onNavigateToActivityDetail
@@ -494,4 +591,5 @@ fun getActivityIcon(activityType: String?): androidx.compose.ui.graphics.vector.
         else -> Icons.Default.Info
     }
 }
+
 

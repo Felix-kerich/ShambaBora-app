@@ -51,7 +51,14 @@ class FarmActivityViewModel @Inject constructor(
     fun loadActivities(activityType: String? = null, page: Int = 0, size: Int = 10) {
         viewModelScope.launch {
             _activitiesState.value = Resource.Loading()
-            _activitiesState.value = repository.getActivities(activityType, page, size)
+            _activitiesState.value = repository.getActivities(activityType, patchId = null, page, size)
+        }
+    }
+    
+    fun loadActivitiesByPatch(patchId: Long, page: Int = 0, size: Int = 10) {
+        viewModelScope.launch {
+            _activitiesState.value = Resource.Loading()
+            _activitiesState.value = repository.getActivities(activityType = null, patchId = patchId, page, size)
         }
     }
     

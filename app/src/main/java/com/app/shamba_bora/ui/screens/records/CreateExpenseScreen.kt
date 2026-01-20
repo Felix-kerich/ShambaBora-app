@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.app.shamba_bora.data.model.*
+import com.app.shamba_bora.data.constants.FarmingInputs
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.ui.components.records.*
@@ -152,6 +153,15 @@ fun CreateExpenseScreen(
                         value = supplier,
                         onValueChange = { supplier = it },
                         placeholder = "e.g., Local Agro-Dealer"
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SearchableDropdown(
+                        label = "Select Supplier (or type custom)",
+                        value = supplier,
+                        onValueChange = { supplier = it },
+                        options = FarmingInputs.SUPPLIERS,
+                        placeholder = "Search suppliers...",
+                        allowCustomInput = true
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     FormTextField(

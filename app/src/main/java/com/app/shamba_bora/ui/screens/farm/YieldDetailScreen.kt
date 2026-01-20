@@ -23,6 +23,7 @@ import com.app.shamba_bora.viewmodel.YieldRecordViewModel
 fun YieldDetailScreen(
     yieldId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToEdit: (Long) -> Unit = {},
     viewModel: YieldRecordViewModel = hiltViewModel()
 ) {
     val yieldState by viewModel.yieldState.collectAsState()
@@ -42,6 +43,9 @@ fun YieldDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { onNavigateToEdit(yieldId) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Yield")
+                    }
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }

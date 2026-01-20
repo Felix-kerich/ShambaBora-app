@@ -101,7 +101,7 @@ fun RecordCategoriesSection(
         RecordCategory(
             "Farm Activities",
             "Track planting, harvesting, and other farm operations",
-            Icons.Default.Info,
+            Icons.Default.EventNote,
             colorScheme.primary,
             activitiesCount,
             onNavigateToActivities
@@ -109,7 +109,7 @@ fun RecordCategoriesSection(
         RecordCategory(
             "Expenses",
             "Record and manage your farming expenses",
-            Icons.Default.Info,
+            Icons.Default.AttachMoney,
             colorScheme.error,
             expensesCount,
             onNavigateToExpenses
@@ -117,7 +117,7 @@ fun RecordCategoriesSection(
         RecordCategory(
             "Yields",
             "Log your harvest and yield information",
-            Icons.Default.Info,
+            Icons.Default.Agriculture,
             colorScheme.tertiary,
             yieldsCount,
             onNavigateToYields
@@ -186,7 +186,8 @@ fun RecordsScreen(
     expenseViewModel: FarmExpenseViewModel = hiltViewModel(),
     yieldViewModel: YieldRecordViewModel = hiltViewModel(),
     patchViewModel: PatchViewModel = hiltViewModel(),
-    chatbotViewModel: ChatbotViewModel = hiltViewModel()
+    chatbotViewModel: ChatbotViewModel = hiltViewModel(),
+    onNavigateToAnalytics: (() -> Unit)? = null
 ) {
     var showAdviceDialog by remember { mutableStateOf(false) }
     var showAdviceErrorDialog by remember { mutableStateOf(false) }
@@ -320,6 +321,22 @@ fun RecordsScreen(
                 onClick = onNavigateToPatches
             ).let { category ->
                 RecordCategoryCard(category = category)
+            }
+        }
+        
+        // Farm Analytics
+        if (onNavigateToAnalytics != null) {
+            item {
+                RecordCategory(
+                    title = "Farm Analytics",
+                    description = "View performance metrics and insights",
+                    icon = Icons.Default.ShowChart,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    count = 0,
+                    onClick = onNavigateToAnalytics
+                ).let { category ->
+                    RecordCategoryCard(category = category)
+                }
             }
         }
         

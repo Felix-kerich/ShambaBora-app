@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.material:material-icons-extended:1.7.5")
     
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -90,6 +91,9 @@ dependencies {
     
     // System UI Controller
     implementation(libs.accompanist.systemuicontroller)
+    
+    // Google Play Services - Location
+    implementation("com.google.android.gms:play-services-location:21.0.1")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

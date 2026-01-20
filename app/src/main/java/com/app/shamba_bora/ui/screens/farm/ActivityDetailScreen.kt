@@ -37,6 +37,7 @@ import java.time.format.DateTimeFormatter
 fun ActivityDetailScreen(
     activityId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToEdit: (Long) -> Unit = {},
     viewModel: FarmActivityViewModel = hiltViewModel()
 ) {
     val activityState by viewModel.activityState.collectAsState()
@@ -60,6 +61,9 @@ fun ActivityDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { onNavigateToEdit(activityId) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Activity")
+                    }
                     IconButton(onClick = { showReminderDialog = true }) {
                         Icon(Icons.Default.Notifications, contentDescription = "Add Reminder")
                     }

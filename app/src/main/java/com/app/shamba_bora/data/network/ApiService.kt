@@ -57,6 +57,7 @@ interface ApiService {
     @GET("farm-activities")
     suspend fun getActivities(
         @Query("activityType") activityType: String? = null,
+        @Query("patchId") patchId: Long? = null,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 10
     ): Response<PageResponse<FarmActivity>>
@@ -97,6 +98,7 @@ interface ApiService {
     suspend fun getExpenses(
         @Query("cropType") cropType: String? = null,
         @Query("category") category: String? = null,
+        @Query("patchId") patchId: Long? = null,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 10
     ): Response<PageResponse<FarmExpense>>
@@ -130,6 +132,7 @@ interface ApiService {
     @GET("yield-records")
     suspend fun getYieldRecords(
         @Query("cropType") cropType: String? = null,
+        @Query("patchId") patchId: Long? = null,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 10
     ): Response<PageResponse<YieldRecord>>
@@ -170,11 +173,18 @@ interface ApiService {
     suspend fun createYieldRecordWithDTO(@Body yield: com.app.shamba_bora.data.model.YieldRecordRequest): Response<com.app.shamba_bora.data.model.YieldRecordResponse>
     
     // ========== FARM ANALYTICS ==========
+    @GET("farm-analytics")
+    suspend fun getFarmAnalytics(
+        @Query("cropType") cropType: String? = null,
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null
+    ): Response<FarmAnalyticsDTO>
+    
     @GET("farm-analytics/patches/{patchId}/summary")
     suspend fun getPatchSummary(@Path("patchId") patchId: Long): Response<PatchSummaryDTO>
     
     @POST("farm-analytics/patches/compare")
-    suspend fun comparePatches(@Body patchIds: List<Long>): Response<PatchComparisonDTO>
+    suspend fun comparePatches(@Body patchIds: List<Long>): Response<PatchComparisonResponse>
     
     // ========== WEATHER ==========
     @GET("weather/current")

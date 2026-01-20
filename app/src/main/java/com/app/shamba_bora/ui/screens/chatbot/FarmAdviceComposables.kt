@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.app.shamba_bora.data.model.FarmAdviceResponse
 import com.app.shamba_bora.data.model.FarmRecommendation
+import com.app.shamba_bora.ui.utils.renderMarkdown
 
 /**
  * Enhanced Farm Advice Dialog showing comprehensive analytics and recommendations
@@ -22,7 +23,8 @@ import com.app.shamba_bora.data.model.FarmRecommendation
 @Composable
 fun EnhancedFarmAdviceDialog(
     advice: FarmAdviceResponse,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSave: (() -> Unit)? = null
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -157,8 +159,23 @@ fun EnhancedFarmAdviceDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (onSave != null) {
+                    FilledTonalButton(onClick = onSave) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Save")
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Close")
+                }
             }
         },
         modifier = Modifier.fillMaxWidth()
@@ -195,7 +212,7 @@ fun OverallAssessmentCard(assessment: String) {
                 )
             }
             Text(
-                assessment,
+                renderMarkdown(assessment),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -249,7 +266,7 @@ fun AdviceSectionEnhanced(
                         modifier = Modifier.padding(top = 2.dp)
                     )
                     Text(
-                        item,
+                        renderMarkdown(item),
                         style = MaterialTheme.typography.bodySmall,
                         color = titleColor
                     )
@@ -308,7 +325,7 @@ fun RecommendationCardEnhanced(
             }
             
             Text(
-                recommendation.recommendation,
+                renderMarkdown(recommendation.recommendation),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold
@@ -372,7 +389,7 @@ fun BestPracticeCard(practice: String, reason: String? = null) {
             }
             if (reason != null) {
                 Text(
-                    "Why: $reason",
+                    renderMarkdown("Why: $reason"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontStyle = FontStyle.Italic,
@@ -417,7 +434,7 @@ fun InfoCard(
                 )
             }
             Text(
-                content,
+                renderMarkdown(content),
                 style = MaterialTheme.typography.bodySmall,
                 color = contentColor
             )

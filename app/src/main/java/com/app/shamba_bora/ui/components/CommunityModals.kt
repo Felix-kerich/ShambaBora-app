@@ -1,5 +1,9 @@
 package com.app.shamba_bora.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,6 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.app.shamba_bora.data.model.Post
 import com.app.shamba_bora.data.model.PostComment
 
@@ -25,10 +32,21 @@ fun CreatePostModal(
 ) {
     var content by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var selectedPostType by remember { mutableStateOf("GENERAL") }
     var expandedPostType by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+        uri?.let {
+            imageUrl = it.toString()
+        }
+    }
     
     val postTypes = listOf(
         "GENERAL" to "General",
@@ -70,7 +88,7 @@ fun CreatePostModal(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.9f),
+                .fillMaxHeight(0.95f),
             shape = MaterialTheme.shapes.large
         ) {
             Column(
@@ -200,25 +218,96 @@ fun CreatePostModal(
                         placeholder = { Text("Share your farming experience, ask questions, or provide advice...") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
-                        minLines = 8,
-                        maxLines = 15
+                            .height(300.dp),
+                        minLines = 12,
+                        maxLines = 20
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // Image URL Input
-                    OutlinedTextField(
-                        value = imageUrl,
-                        onValueChange = { imageUrl = it },
-                        label = { Text("Image URL (Optional)") },
-                        placeholder = { Text("https://example.com/image.jpg") },
-                        modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = {
-                            Icon(Icons.Default.Star, contentDescription = null)
-                        },
-                        singleLine = true
+                    // Image Selection Section
+                    Text(
+                        text = "Add Image",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Image Picker Button
+                        OutlinedButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Star, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Pick Image")
+                        }
+                        
+                        // Clear Image Button
+                        if (selectedImageUri != null || imageUrl.isNotEmpty()) {
+                            OutlinedButton(
+                                onClick = {
+                                    selectedImageUri = null
+                                    imageUrl = ""
+                                }
+                            ) {
+                                Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Clear")
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Image URL Input (or display selected image info)
+                    if (selectedImageUri != null) {
+                        OutlinedTextField(
+                            value = "Image selected from gallery",
+                            onValueChange = {},
+                            label = { Text("Selected Image") },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false,
+                            leadingIcon = {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = imageUrl,
+                            onValueChange = { imageUrl = it },
+                            label = { Text("Or paste Image URL") },
+                            placeholder = { Text("https://example.com/image.jpg") },
+                            modifier = Modifier.fillMaxWidth(),
+                            leadingIcon = {
+                                Icon(Icons.Default.Star, contentDescription = null)
+                            },
+                            singleLine = true
+                        )
+                    }
+                    
+                    // Image Preview
+                    if (selectedImageUri != null || imageUrl.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            AsyncImage(
+                                model = selectedImageUri ?: imageUrl,
+                                contentDescription = "Selected image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     

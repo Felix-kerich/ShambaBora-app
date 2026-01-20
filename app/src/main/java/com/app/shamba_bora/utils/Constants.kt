@@ -1,11 +1,12 @@
 package com.app.shamba_bora.utils
 
 object Constants {
-    const val BASE_URL = "http://10.0.2.2:8080" // Android emulator localhost
+//    const val BASE_URL = "https://shambabora-api.wolkhost.com" // Android emulator localhost
+    const val BASE_URL = " http://10.0.2.2:8080"
     // For physical device, use: "http://<your-computer-ip>:8080"
     const val API_PREFIX = "/api"
     
-    const val CHATBOT_BASE_URL = "http://10.0.2.2:8000" // RAG Service API on port 8088
+    const val CHATBOT_BASE_URL = "https://shambabora-rag.wolkhost.com" // RAG Service API on port 8088
     // For physical device, use: "http://<your-computer-ip>:8088"
     
     // SharedPreferences Keys

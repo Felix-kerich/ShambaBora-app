@@ -45,6 +45,9 @@ data class Post(
     @SerializedName("commentCount")
     val commentCount: Int? = 0,
     
+    @SerializedName("shareCount")
+    val shareCount: Int? = 0,
+    
     @SerializedName("recentComments")
     val recentComments: List<PostComment>? = null,
     
@@ -87,6 +90,12 @@ data class PostComment(
     val createdAt: String? = null,
     
     @SerializedName("updatedAt")
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    
+    @SerializedName("likeCount")
+    val likeCount: Int? = 0,
+    
+    @SerializedName("likedByCurrentUser")
+    val likedByCurrentUser: Boolean? = false
 )
 
