@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -22,6 +23,8 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.app.shamba_bora.data.model.Post
 import com.app.shamba_bora.data.model.PostComment
+import com.app.shamba_bora.utils.CloudinaryUploader
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +33,9 @@ fun CreatePostModal(
     onCreatePost: (Post) -> Unit,
     groupId: Long? = null
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
     var content by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -37,14 +43,31 @@ fun CreatePostModal(
     var expandedPostType by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var isUploadingImage by remember { mutableStateOf(false) }
     
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        selectedImageUri = uri
         uri?.let {
-            imageUrl = it.toString()
+            selectedImageUri = it
+            // Upload to Cloudinary
+            isUploadingImage = true
+            scope.launch {
+                val result = CloudinaryUploader.uploadImage(
+                    context = context,
+                    imageUri = it,
+                    folder = if (groupId != null) "shamba_bora/groups" else "shamba_bora/community"
+                )
+                isUploadingImage = false
+                result.onSuccess { url ->
+                    imageUrl = url
+                }.onFailure { error ->
+                    errorMessage = "Failed to upload image: ${error.message}"
+                    showError = true
+                    selectedImageUri = null
+                }
+            }
         }
     }
     
@@ -126,9 +149,17 @@ fun CreatePostModal(
                             Spacer(modifier = Modifier.width(8.dp))
                             Button(
                                 onClick = { validateAndPost() },
-                                enabled = content.isNotBlank()
+                                enabled = content.isNotBlank() && !isUploadingImage
                             ) {
-                                Text("Post")
+                                if (isUploadingImage) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(if (isUploadingImage) "Uploading..." else "Post")
                             }
                         }
                     }
@@ -265,9 +296,33 @@ fun CreatePostModal(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     // Image URL Input (or display selected image info)
-                    if (selectedImageUri != null) {
+                    if (isUploadingImage) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Uploading image to cloud...",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    } else if (selectedImageUri != null && imageUrl.isNotEmpty()) {
                         OutlinedTextField(
-                            value = "Image selected from gallery",
+                            value = "Image uploaded successfully",
                             onValueChange = {},
                             label = { Text("Selected Image") },
                             modifier = Modifier.fillMaxWidth(),

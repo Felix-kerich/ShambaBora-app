@@ -12,10 +12,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
 import com.app.shamba_bora.ui.components.CreatePostModal
@@ -39,34 +41,31 @@ fun CollaborationScreen(
     var showCreatePostModal by remember { mutableStateOf(false) }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Community") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                actions = {
-                    if (selectedTab == 0) {
-                        IconButton(onClick = { showCreatePostModal = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Create Post")
-                        }
-                    } else if (selectedTab == 2) {
-                        IconButton(onClick = onNavigateToUserSearch) {
-                            Icon(Icons.Default.AddCircle, contentDescription = "Search Users")
-                        }
-                    }
+        floatingActionButton = {
+            // Show FAB only on Feed tab
+            if (selectedTab == 0) {
+                FloatingActionButton(
+                    onClick = { showCreatePostModal = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Create,
+                        contentDescription = "Create Post"
+                    )
                 }
-            )
+            }
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Tab Row
-            TabRow(selectedTabIndex = selectedTab) {
+            // Tab Row at the top
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
@@ -86,30 +85,32 @@ fun CollaborationScreen(
                     icon = { Icon(Icons.Default.MailOutline, contentDescription = null) }
                 )
             }
-        
+            
             // Content
-            when (selectedTab) {
-                0 -> EnhancedFeedScreen(
-                    onNavigateToPostDetail = onNavigateToPostDetails,
-                    onNavigateToMessages = { onNavigateToMessages() },
-                    onNavigateToProfile = { /* TODO */ },
-                    onNavigateToConversation = { userId, userName ->
-                        onNavigateToMessageUser(userId, userName)
-                    },
-                    showFAB = false,  // Hide FAB since CollaborationScreen has its own
-                    showTopBar = false,  // Hide TopBar since CollaborationScreen has its own
-                    viewModel = viewModel
-                )
-                1 -> GroupsScreen(
-                    onNavigateToGroups = onNavigateToGroups,
-                    onNavigateToGroupDetail = onNavigateToGroupDetail,
-                    viewModel = viewModel
-                )
-                2 -> MessagesScreen(
-                    onNavigateToMessages = onNavigateToMessages,
-                    onNavigateToUserSearch = onNavigateToUserSearch,
-                    viewModel = viewModel
-                )
+            Box(modifier = Modifier.weight(1f)) {
+                when (selectedTab) {
+                    0 -> EnhancedFeedScreen(
+                        onNavigateToPostDetail = onNavigateToPostDetails,
+                        onNavigateToMessages = { onNavigateToMessages() },
+                        onNavigateToProfile = { /* TODO */ },
+                        onNavigateToConversation = { userId, userName ->
+                            onNavigateToMessageUser(userId, userName)
+                        },
+                        showFAB = false,  // Hide FeedScreen's FAB, use CollaborationScreen's FAB instead
+                        showTopBar = false,  // Hide TopBar to avoid repetition
+                        viewModel = viewModel
+                    )
+                    1 -> GroupsScreen(
+                        onNavigateToGroups = onNavigateToGroups,
+                        onNavigateToGroupDetail = onNavigateToGroupDetail,
+                        viewModel = viewModel
+                    )
+                    2 -> MessagesScreen(
+                        onNavigateToMessages = onNavigateToMessages,
+                        onNavigateToUserSearch = onNavigateToUserSearch,
+                        viewModel = viewModel
+                    )
+                }
             }
         }
         
@@ -119,6 +120,7 @@ fun CollaborationScreen(
                 onDismiss = { showCreatePostModal = false },
                 onCreatePost = { post ->
                     viewModel.createPost(post)
+                    showCreatePostModal = false
                 }
             )
         }
@@ -384,6 +386,8 @@ fun PostCard(
     onLike: () -> Unit = {},
     onUnlike: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick
@@ -438,17 +442,24 @@ fun PostCard(
             
             // Post Image (if any)
             post.imageUrl?.let { imageUrl ->
-                if (imageUrl.isNotEmpty()) {
+                if (imageUrl.isNotBlank() && imageUrl != "null") {
                     Spacer(modifier = Modifier.height(12.dp))
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(MaterialTheme.shapes.medium),
-                        contentScale = ContentScale.Crop
-                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Post image",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 200.dp, max = 400.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
             }
             

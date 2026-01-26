@@ -10,10 +10,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.app.shamba_bora.data.model.Product
 import com.app.shamba_bora.ui.components.ErrorView
 import com.app.shamba_bora.ui.components.LoadingIndicator
@@ -147,6 +150,7 @@ fun MyProductCard(
     onToggleAvailability: () -> Unit,
     viewModel: MarketplaceViewModel
 ) {
+    val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
     
     Card(
@@ -164,10 +168,14 @@ fun MyProductCard(
             ) {
                 if (!product.imageUrl.isNullOrEmpty()) {
                     AsyncImage(
-                        model = product.imageUrl,
+                        model = ImageRequest.Builder(context)
+                            .data(product.imageUrl)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = product.name,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(android.R.drawable.ic_menu_gallery)
                     )
                 } else {
                     Surface(

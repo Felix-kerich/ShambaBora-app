@@ -22,6 +22,7 @@ import com.app.shamba_bora.viewmodel.MarketplaceViewModel
 @Composable
 fun OrderListScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToMessageUser: (Long, String) -> Unit = { _, _ -> },
     viewModel: MarketplaceViewModel = hiltViewModel()
 ) {
     val ordersState by viewModel.ordersState.collectAsState()
@@ -125,6 +126,17 @@ fun OrderListScreen(
                                     isSeller = selectedTab == 1,
                                     onUpdateStatus = { status ->
                                         viewModel.updateOrderStatus(order.id ?: 0L, status)
+                                    },
+                                    onMessageUser = {
+                                        // If buyer (selectedTab == 0), message the seller
+                                        // If seller (selectedTab == 1), message the buyer
+                                        if (selectedTab == 0) {
+                                            order.sellerId?.let { sellerId ->
+                                                onNavigateToMessageUser(sellerId, "Seller #$sellerId")
+                                            }
+                                        } else {
+                                            onNavigateToMessageUser(order.buyerId, "Buyer #${order.buyerId}")
+                                        }
                                     }
                                 )
                             }
@@ -141,7 +153,8 @@ fun OrderListScreen(
 fun OrderCard(
     order: Order,
     isSeller: Boolean,
-    onUpdateStatus: (String) -> Unit
+    onUpdateStatus: (String) -> Unit,
+    onMessageUser: () -> Unit = {}
 ) {
     var showStatusDialog by remember { mutableStateOf(false) }
     
@@ -241,6 +254,21 @@ fun OrderCard(
                 ) {
                     Text("Update Status")
                 }
+            }
+            
+            // Message button for both buyers and sellers
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onMessageUser,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MailOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (isSeller) "Message Buyer" else "Message Seller")
             }
         }
     }

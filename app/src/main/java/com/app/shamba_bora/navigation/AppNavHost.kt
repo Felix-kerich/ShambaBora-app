@@ -134,6 +134,9 @@ fun AppNavHost(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToCheckout = { product, quantity ->
                     navController.navigate(Screen.Checkout.createRoute(product.id ?: 0L, quantity))
+                },
+                onNavigateToMessageUser = { userId, userName ->
+                    navController.navigate(Screen.Conversation.createRoute(userId, userName))
                 }
             )
         }
@@ -203,7 +206,10 @@ fun AppNavHost(
         
         composable(Screen.Orders.route) {
             OrderListScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToMessageUser = { userId, userName ->
+                    navController.navigate(Screen.Conversation.createRoute(userId, userName))
+                }
             )
         }
         

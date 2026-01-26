@@ -23,6 +23,7 @@ import com.app.shamba_bora.viewmodel.MarketplaceViewModel
 fun OrderHistoryScreen(
     buyerId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToMessageUser: (Long, String) -> Unit = { _, _ -> },
     viewModel: MarketplaceViewModel = hiltViewModel()
 ) {
     val ordersState by viewModel.buyerOrdersState.collectAsState()
@@ -111,7 +112,14 @@ fun OrderHistoryScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(orders) { order ->
-                            OrderCard(order = order)
+                            OrderCard(
+                                order = order,
+                                onMessageSeller = {
+                                    order.sellerId?.let { sellerId ->
+                                        onNavigateToMessageUser(sellerId, "Seller #$sellerId")
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -121,7 +129,10 @@ fun OrderHistoryScreen(
 }
 
 @Composable
-fun OrderCard(order: Order) {
+fun OrderCard(
+    order: Order,
+    onMessageSeller: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -227,6 +238,23 @@ fun OrderCard(order: Order) {
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+            
+            // Message Seller Button
+            if (order.sellerId != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onMessageSeller,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MailOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Message Seller")
                 }
             }
         }

@@ -23,6 +23,7 @@ import com.app.shamba_bora.viewmodel.MarketplaceViewModel
 fun SellerOrdersScreen(
     sellerId: Long,
     onNavigateBack: () -> Unit,
+    onNavigateToMessageUser: (Long, String) -> Unit = { _, _ -> },
     viewModel: MarketplaceViewModel = hiltViewModel()
 ) {
     val ordersState by viewModel.sellerOrdersState.collectAsState()
@@ -115,6 +116,9 @@ fun SellerOrdersScreen(
                                 order = order,
                                 onUpdateStatus = { orderId, newStatus ->
                                     viewModel.updateOrderStatus(orderId, newStatus)
+                                },
+                                onMessageBuyer = {
+                                    onNavigateToMessageUser(order.buyerId, "Buyer #${order.buyerId}")
                                 }
                             )
                         }
@@ -128,7 +132,8 @@ fun SellerOrdersScreen(
 @Composable
 fun SellerOrderCard(
     order: Order,
-    onUpdateStatus: (Long, String) -> Unit
+    onUpdateStatus: (Long, String) -> Unit,
+    onMessageBuyer: () -> Unit = {}
 ) {
     var showStatusMenu by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
@@ -296,6 +301,21 @@ fun SellerOrderCard(
                             )
                         }
                     }
+                }
+                
+                // Message Buyer Button
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onMessageBuyer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MailOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Message Buyer")
                 }
             }
         }

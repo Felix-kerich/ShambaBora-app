@@ -20,6 +20,9 @@ class CommunityViewModel @Inject constructor(
     
     private val _feedState = MutableStateFlow<Resource<PageResponse<Post>>>(Resource.Loading())
     val feedState: StateFlow<Resource<PageResponse<Post>>> = _feedState.asStateFlow()
+
+    private val _groupPostsState = MutableStateFlow<Resource<PageResponse<Post>>>(Resource.Loading())
+    val groupPostsState: StateFlow<Resource<PageResponse<Post>>> = _groupPostsState.asStateFlow()
     
     private val _groupsState = MutableStateFlow<Resource<List<Group>>>(Resource.Loading())
     val groupsState: StateFlow<Resource<List<Group>>> = _groupsState.asStateFlow()
@@ -86,6 +89,21 @@ class CommunityViewModel @Inject constructor(
         viewModelScope.launch {
             _commentsState.value = Resource.Loading()
             _commentsState.value = repository.getPostComments(postId, page, size)
+        }
+    }
+
+
+    fun loadGroupPosts(groupId: Long, page: Int = 0, size: Int = 20) {
+        viewModelScope.launch {
+            _groupPostsState.value = Resource.Loading()
+            _groupPostsState.value = repository.getGroupPosts(groupId, page, size)
+        }
+    }
+
+    fun createGroupPost(groupId: Long, post: Post) {
+        viewModelScope.launch {
+            repository.createGroupPost(groupId, post)
+            loadGroupPosts(groupId)
         }
     }
     

@@ -12,10 +12,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.app.shamba_bora.data.model.Post
 
 /**
@@ -221,6 +223,7 @@ private fun PostContent(
     showMore: Boolean,
     onToggleShowMore: () -> Unit
 ) {
+    val context = LocalContext.current
     val maxLines = if (showMore) Int.MAX_VALUE else 5
     val shouldShowButton = content.length > 200
 
@@ -246,17 +249,25 @@ private fun PostContent(
 
         // Post Image
         imageUrl?.let { url ->
-            if (url.isNotEmpty()) {
+            if (url.isNotBlank() && url != "null") {
                 Spacer(modifier = Modifier.height(12.dp))
-                AsyncImage(
-                    model = url,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                        .clip(MaterialTheme.shapes.medium),
-                    contentScale = ContentScale.Crop
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(url)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Post image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 200.dp, max = 400.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
         }
     }

@@ -1,8 +1,8 @@
 package com.app.shamba_bora.utils
 
 object Constants {
-//    const val BASE_URL = "https://shambabora-api.wolkhost.com" // Android emulator localhost
-    const val BASE_URL = " http://10.0.2.2:8080"
+    const val BASE_URL = "https://shambabora-api.wolkhost.com" // Android emulator localhost
+//    const val BASE_URL = " http://10.0.2.2:8080"
     // For physical device, use: "http://<your-computer-ip>:8080"
     const val API_PREFIX = "/api"
     

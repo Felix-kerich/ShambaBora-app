@@ -289,6 +289,13 @@ interface ApiService {
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20
     ): Response<ApiResponse<PageResponse<Post>>>
+
+    @POST("collaboration/posts/group/{groupId}")
+    suspend fun createGroupPost(
+        @Header("X-User-Id") userId: Long,
+        @Path("groupId") groupId: Long,
+        @Body post: Post
+    ): Response<ApiResponse<Post>>
     
     @POST("collaboration/posts/{postId}/like")
     suspend fun likePost(

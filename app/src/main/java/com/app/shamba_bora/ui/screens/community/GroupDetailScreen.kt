@@ -145,7 +145,7 @@ fun GroupDetailScreen(
             CreatePostModal(
                 onDismiss = { showCreatePostModal = false },
                 onCreatePost = { post ->
-                    communityViewModel.createPost(post)
+                    communityViewModel.createGroupPost(groupId, post)
                 },
                 groupId = groupId
             )
@@ -159,7 +159,11 @@ fun GroupPostsTab(
     onNavigateToPostDetails: (Long) -> Unit,
     viewModel: CommunityViewModel
 ) {
-    val feedState by viewModel.feedState.collectAsState()
+    val groupPostsState by viewModel.groupPostsState.collectAsState()
+    
+    LaunchedEffect(groupId) {
+        viewModel.loadGroupPosts(groupId)
+    }
     
     LazyColumn(
         modifier = Modifier
@@ -179,7 +183,7 @@ fun GroupPostsTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
@@ -197,7 +201,7 @@ fun GroupPostsTab(
         }
         
         // Posts
-        when (val state = feedState) {
+        when (val state = groupPostsState) {
             is Resource.Loading -> {
                 item {
                     LoadingIndicator()
@@ -207,12 +211,12 @@ fun GroupPostsTab(
                 item {
                     ErrorView(
                         message = state.message ?: "Failed to load posts",
-                        onRetry = { viewModel.loadFeed() }
+                        onRetry = { viewModel.loadGroupPosts(groupId) }
                     )
                 }
             }
             is Resource.Success -> {
-                val posts = state.data?.content?.filter { it.groupId == groupId } ?: emptyList()
+                val posts = state.data?.content ?: emptyList()
                 if (posts.isEmpty()) {
                     item {
                         Box(
@@ -249,7 +253,7 @@ fun GroupPostsTab(
                         GroupPostCard(
                             post = post,
                             onClick = { onNavigateToPostDetails(post.id ?: 0L) },
-                            onLike = { viewModel.likePost(post.id ?: 0L) },
+                            onLike = { viewModel.likePost(post.id ?: 0L) }, // TODO: Update to likeGroupPost if needed or check if likePost works universally
                             onUnlike = { viewModel.unlikePost(post.id ?: 0L) }
                         )
                     }

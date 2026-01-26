@@ -49,6 +49,24 @@ class CollaborationRepository @Inject constructor(
             Resource.Error(e.message ?: "An error occurred")
         }
     }
+
+    suspend fun createGroupPost(groupId: Long, post: Post): Resource<Post> {
+        return try {
+            val response = apiService.createGroupPost(getUserId(), groupId, post)
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (apiResponse.success && apiResponse.data != null) {
+                    Resource.Success(apiResponse.data!!)
+                } else {
+                    Resource.Error(apiResponse.message ?: "Failed to create group post")
+                }
+            } else {
+                Resource.Error(response.message() ?: "Failed to create group post")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "An error occurred")
+        }
+    }
     
     suspend fun getGroupPosts(
         groupId: Long,
